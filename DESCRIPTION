@@ -1,0 +1,11 @@
+Package: uniswap
+Type: Package
+Title: Implements Uniswap v3 Math
+Version: 0.1.0
+Author: Carlos Mercado
+Maintainer: Carlos Mercado <carlos.mercado@flipsidecrypto.com>
+Description: Replicates key Uniswap v3 math for creating and assessing liquidity 
+positions.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
