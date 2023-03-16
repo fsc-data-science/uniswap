@@ -1,0 +1,58 @@
+
+#' Get Closest Tick
+#'
+#' Depending on the Uniswap v3 Pool fee tier, only specific ticks are allowed to be
+#' used in positions. In 0.05 percent pools, the tick spacing is 10 minimum. In 0.3 percent, the minimum is 60 ticks.
+#' This function identifies the closest legal tick given tick spacing.
+#'
+#' @param desired_price Your desired price, note it is important to know the unit of account. 0.05 BTC/ETH is 20 ETH/BTC.
+#' @param tick_spacing The pool's minimum tick spacing, default 0.3 percent pool, i.e., 60.
+#' @param decimal_adjustment The difference in the tokens decimals, e.g., 1e10 for ETH vs BTC. 1e12 for USDC vs ETH; 1 (default) for most ERC20/ETH.
+#' @param yx Whether price is already in Token 1 / Token 0 format or inverted. ETH per USDC may be how the pool functions but is not friendly for human interpretation. Default is false.
+#'
+#' @return a list of desired_price (the input), the closest allowable price, and the tick of that allowable price.
+#' @export
+#' @examples
+#' get_closest_tick(0.05, # 0.05 BTC / ETH is NOT Y/X accounting for the pool.
+#' tick_spacing = 60, # 0.3 percent fee pool
+#' decimal_adjustment = 1e10, # ETH 18 decimals vs BTC 8 decimals.
+#'  yx = FALSE) # closest allowable tick: -260220
+#'
+#' get_closest_tick(20, # 20 ETH / BTC. This IS Y/X accounting for the pool.
+#' tick_spacing = 60,
+#' decimal_adjustment = 1e10,
+#' yx = TRUE) # closest allowable tick: -260220
+get_closest_tick <- function(desired_price, tick_spacing = 60, decimal_adjustment = 1, yx = FALSE){
+
+    r <- list(
+    desired_price = desired_price,
+    actual_price = NULL,
+    tick = NULL
+  )
+
+  # if price is Y/X formatted already,
+  # invert for real tick calculation and invert price for human readability.
+  if(yx == TRUE){
+    r <- get_closest_tick(desired_price = desired_price^-1,
+                          tick_spacing = tick_spacing,
+                          decimal_adjustment = decimal_adjustment,
+                          yx = FALSE)
+    r$desired_price <- r$desired_price^-1
+    r$actual_price <- r$actual_price^-1
+    return(r)
+  }
+
+  initial_tick <- log( sqrt(desired_price / decimal_adjustment), sqrt(1.0001) )
+
+  if(initial_tick %% tick_spacing == 0){
+    r$actual_price <- desired_price # exact match
+    r$tick <- initial_tick
+  } else {
+    final_tick <- round(initial_tick / tick_spacing)*tick_spacing
+    r$tick <- final_tick
+    r$actual_price <- sqrt(1.0001)^(2*final_tick) * decimal_adjustment
+  }
+
+  return(r)
+
+}

@@ -9,6 +9,14 @@
     ]
   },
   "Packages": {
+    "gmp": {
+      "Package": "gmp",
+      "Version": "0.6-9",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "f4d6d2529bc9386f5d5321a07652a0e6",
+      "Requirements": []
+    },
     "renv": {
       "Package": "renv",
       "Version": "0.15.5",

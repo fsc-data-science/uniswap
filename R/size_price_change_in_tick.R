@@ -1,0 +1,64 @@
+
+#' Size Price Change in Tick
+#'
+#' Given liquidity, a current price, a target price, and the fee tier of a pool
+#' calculate how large a trade would be required to get to the target price.
+#'
+#' @param L active amount of liquidity in the pool, as big integer.
+#' See get_liquidity() or read a pool contract's liquidity directly on etherscan to get this value.
+#' @param sqrtpx96 current price in uint160 format.
+#' See price_to_sqrtpx96() or read a pool contract's sqrtPriceX96 within it's slot0 on etherscan to get this value.
+#' @param sqrtpx96_target target price in uint160 format. See price_to_sqrtpx96().
+#' @param dx TRUE or FALSE. Whether the amount needed to trade should be denominated in token 0 (TRUE) or token 1 (FALSE).
+#' @param decimal_adjustment decimal of token 0 (if dx TRUE) or decimal of token 1 (if dx FALSE).
+#' @param fee The pool fee, default 0.3\% (0.003). Generally one of: 0.0001, 0.0005, 0.003, 0.01
+#'
+#' @return Returns the human readable (i.e., decimal adjusted) amount the trader needs to trade in the desired unit (token 0 for dx = TRUE)
+#' fee already included (i.e., a .997 ETH pool difference for price target in a 0.3\% pool will return 1 not .997).
+#' Positive results are adds to the pool (trader sells); negative results are removes from pool (trader buys).
+#' @export
+#'
+#' @examples
+#' # See: https://science.flipsidecrypto.xyz/uni_v3_explained/#Swap_across_Ticks
+#' # Move LINK/MKR 0.3\% Pool on Optimism from current price to new price
+#' # Will match 0.00000003067549 LINK added to pool (i.e., trader sells LINK)
+#' size_price_change_in_tick(
+#' L = "343255264548669212",
+#' sqrtpx96 = "7625888646051765535543132160",
+#' sqrtpx96_target = '7625888580652810738255925731',
+#'  # return the amount of token 0 which is LINK
+#' dx = TRUE,
+#' fee = 0.003) / 0.00000003067549 - 1 < 0.00001
+#'
+#' # dx = FALSE shows
+#' # -0.0000000002841929 MKR removed from pool (i.e., bought by Trader).
+#' size_price_change_in_tick(
+#' L = "343255264548669212",
+#' sqrtpx96 = "7625888646051765535543132160",
+#' sqrtpx96_target = '7625888580652810738255925731',
+#' # return the amount of token 0 which is LINK
+#' dx = FALSE,
+#' fee = 0.003) / -0.0000000002841929 - 1 < 0.00001
+#'
+size_price_change_in_tick <- function(L, sqrtpx96, sqrtpx96_target, dx = TRUE,
+                                      decimal_adjustment = 1e18, fee = 0.003){
+
+  # price in *square root* 64.96 form
+  L = gmp::as.bigz(L)
+  P = gmp::as.bigz(sqrtpx96)
+  P_target = gmp::as.bigz(sqrtpx96_target)
+  c96 = gmp::as.bigz(2)^96
+  # inverse price
+  iP = P^-1
+  iP_target = P_target^-1
+
+  if(dx == TRUE){
+    dxa = (iP_target - iP) * L
+    dx = gmp::as.bigq(dxa) / (1 - fee) / decimal_adjustment * c96
+    return(as.numeric(dx))
+  } else {
+    dya = (P_target - P)*L
+    dy = dya / (1 - fee) / c96 / decimal_adjustment
+    return(as.numeric(dy))
+  }
+}
