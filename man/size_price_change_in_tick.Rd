@@ -24,13 +24,14 @@ See price_to_sqrtpx96() or read a pool contract's sqrtPriceX96 within it's slot0
 
 \item{dx}{TRUE or FALSE. Whether the amount needed to trade should be denominated in token 0 (TRUE) or token 1 (FALSE).}
 
-\item{decimal_adjustment}{decimal of token 0 (if dx TRUE) or decimal of token 1 (if dx FALSE).}
+\item{decimal_adjustment}{decimal of token 0 (if dx == TRUE) or decimal of token 1 (if dx == FALSE).}
 
 \item{fee}{The pool fee, default 0.3\% (0.003). Generally one of: 0.0001, 0.0005, 0.003, 0.01}
 }
 \value{
 Returns the human readable (i.e., decimal adjusted) amount the trader needs to trade in the desired unit (token 0 for dx = TRUE)
-fee already included (i.e., a .997 ETH pool difference for price target in a 0.3\% pool will return 1 not .997).
+fee already included (i.e., a .997 ETH pool difference for price target in a 0.3\% pool will return `1` because 1 ETH pays 0.003 ETH in
+fees that are separate from how the pool reacts to trade amounts).
 Positive results are adds to the pool (trader sells); negative results are removes from pool (trader buys).
 }
 \description{
@@ -41,6 +42,8 @@ calculate how large a trade would be required to get to the target price.
 # See: https://science.flipsidecrypto.xyz/uni_v3_explained/#Swap_across_Ticks
 # Move LINK/MKR 0.3\\% Pool on Optimism from current price to new price
 # Will match 0.00000003067549 LINK added to pool (i.e., trader sells LINK)
+# precision tolerance within 0.0001\%:
+#  9.999999999999/10 - 1 < 0.000001
 size_price_change_in_tick(
 L = "343255264548669212",
 sqrtpx96 = "7625888646051765535543132160",
