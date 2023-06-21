@@ -1,30 +1,19 @@
-# Data for package
-
-
-find_recalculation_price <- function(positions, current_price, price_up = TRUE){
-
-  p <- positions[, c("min_price","max_price")]
-
-  # if price going up, get the closest available price above current price
-  if(price_up == TRUE){
-    closest_price <- p[p > current_price][which.min(p[p > current_price])]
-  } else {
-    closest_price <- p[p < current_price][which.max(p[p < current_price])]
-  }
-
-  return(closest_price)
-}
-
-
-check_positions <- function(ptbl, P){
-  if( !("min_price" %in% colnames(ptbl)) | !("max_price" %in% colnames(ptbl))){
-    stop("Cannot find min_price and max_price columns.")
-  }
-
-  ptbl <- ptbl$active = (ptbl$P > ptbl$min_price & ptbl$P < ptbl$max_price)
-  return(ptbl)
-}
-
+#' Swap Across Ticks
+#'
+#' @param ptbl
+#' @param sqrtpx96
+#' @param fee_tbl
+#' @param trade_record
+#' @param dx
+#' @param dy
+#' @param decimal_x
+#' @param decimal_y
+#' @param fee
+#'
+#' @return
+#' @export
+#'
+#' @examples
 swap_across_ticks <- function(ptbl, sqrtpx96,
                               fee_tbl = NULL,
                               trade_record = NULL,
