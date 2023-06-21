@@ -8,7 +8,7 @@
 #' @param desired_price Your desired price, note it is important to know the unit of account. 0.05 BTC/ETH is 20 ETH/BTC.
 #' @param tick_spacing The pool's minimum tick spacing, default 0.3 percent pool, i.e., 60.
 #' @param decimal_adjustment The difference in the tokens decimals, e.g., 1e10 for ETH vs BTC. 1e12 for USDC vs ETH; 1 (default) for most ERC20/ETH.
-#' @param yx Whether price is already in Token 1 / Token 0 format or inverted. ETH per USDC may be how the pool functions but is not friendly for human interpretation. Default is false.
+#' @param yx Whether price is already in Token 1 / Token 0 format or inverted. ETH per USDC may be how the pool functions but is not friendly for human interpretation. Default is TRUE.
 #'
 #' @return a list of desired_price (the input), the closest allowable price, and the tick of that allowable price.
 #' @export
@@ -22,7 +22,7 @@
 #' tick_spacing = 60,
 #' decimal_adjustment = 1e10,
 #' yx = TRUE) # closest allowable tick: -260220
-get_closest_tick <- function(desired_price, tick_spacing = 60, decimal_adjustment = 1, yx = FALSE){
+get_closest_tick <- function(desired_price, tick_spacing = 60, decimal_adjustment = 1, yx = TRUE){
 
     r <- list(
     desired_price = desired_price,
