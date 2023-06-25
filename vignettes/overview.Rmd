@@ -1,0 +1,74 @@
+---
+title: "Overview Using WBTC/ETH"
+author: "Charliemarketplace"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    css: "styles.css"
+    includes:
+    code_folding: hide
+    toc: true
+    toc_float: true
+editor_options: 
+  chunk_output_type: console
+---
+
+# Data  
+
+Data included in this package include: 
+
+## Net Liquidity 
+
+ETH-WBTC 0.3% Fee Tier Uniswap v3 Net Liquidity between Ticks as of a Block 17,000,000. 
+
+This data was taken with the following query using Flipside Crypto Uniswap liquidity_actions table.
+
+Note: `Liquidity_Adjusted` is the raw liquidity divided by `1e13`. This doesn't affect calculations for 
+proportions of liquidity a position earns.
+
+```{r}
+
+{"
+/*
+ETH WBTC 0.3% fee Ethereum Mainnet 
+Up to April 7, 2023 (Block 17M) 
+Liquidity Actions -> Net liquidity as block N
+NOTE: liquidity adjusted is Liquidity / 1e13 to scale it down
+*/
+
+with ethwbtc_003_lp_history AS (
+select 
+block_number, 
+action,
+amount0_adjusted, token0_symbol,
+amount1_adjusted, token1_symbol,
+liquidity_adjusted, 
+IFF(action = 'DECREASE_LIQUIDITY', -1*liquidity_adjusted, liquidity_adjusted) as liquidity_signed,
+tick_lower, tick_upper
+from ETHEREUM.UNISWAPV3.EZ_LP_ACTIONS 
+WHERE pool_address = '0xcbcdf9626bc03e24f779434178a73a0b4bad62ed'
+AND block_number <= 17000000
+AND liquidity_adjusted > 0 
+
+ORDER BY block_number 
+)
+
+select 
+block_number,
+tick_lower, tick_upper,
+sum(liquidity_signed) OVER (
+partition by tick_lower, tick_upper ORDER BY block_number ASC 
+ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+) as net_adjusted_liquidity
+from ethwbtc_003_lp_history
+ORDER BY block_number ASC, tick_lower, tick_upper
+"
+}
+
+
+```
+
+
+```{r}
+
+```
