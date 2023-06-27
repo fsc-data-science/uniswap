@@ -9,7 +9,7 @@ size_price_change_in_tick(
   sqrtpx96,
   sqrtpx96_target,
   dx = TRUE,
-  decimal_adjustment = 1e+18,
+  decimal_adjustment = 1000000000000000000,
   fee = 0.003
 )
 }

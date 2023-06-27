@@ -11,6 +11,10 @@ check_positions(ptbl, P, decimal_adjustment = 1, yx = TRUE)
 This included dataset is net_liquidity, so it should be filtered to the max blockheight for a given tick_lower-tick_upper.}
 
 \item{P}{Specific price in human readable format, converted to tick for flagging using ?get_closest_tick with tick_spacing = 1.}
+
+\item{decimal_adjustment}{The difference in the tokens decimals, e.g., 1e10 for ETH vs BTC. 1e12 for USDC vs ETH; 1 (default) for most ERC20/ETH.}
+
+\item{yx}{Whether price is already in Token 1 / Token 0 format or inverted. ETH per USDC is how the ETH Mainnet 0.05\% pool works but is not friendly for human interpretation. Default is TRUE.}
 }
 \value{
 The liquidity positions table with a new `active` flag column for whether the liquidity is active or not at price P.
@@ -20,5 +24,6 @@ Simple helper function for flagging liquidity positions as active or not active 
 }
 \examples{
 data("ethwbtc_net_liquidity")
-ethwbtc_net_liquidity <- check_positions(ethwbtc_net_liquidity, P = 0.10, decimal_adjustment = 1e10, yx = FALSE)
+# note this would still need to be aggregated to row with max block for a given tick_lower-tick_upper combo (i.e. liquidity for range at a blockheight)
+check_positions(ethwbtc_net_liquidity, P = 0.10, decimal_adjustment = 1e10, yx = FALSE)
 }
