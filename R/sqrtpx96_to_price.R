@@ -2,7 +2,7 @@
 #' Uniswap stores prices as square roots in 64.96 (64 bits integer, 96 bit fractional)
 #' assume sqrt price is a rational and use gmp big integer.
 #'
-#' @param sqrtpX96 The Uniswap 64.96 square root price to convert to human readable price.
+#' @param sqrtpx96 The Uniswap 64.96 square root price to convert to human readable price.
 #' @param invert Default FALSE. Uniswap uses Token 1 / Token 0. You must know which token is which at the pool level.
 #' @param decimal_adjustment 10^(decimal difference). WBTC has 8 decimals, ETH has 18. See example.
 #'
@@ -20,8 +20,8 @@
 #' sqrtpx96_to_price('1854219362252931989533640458424264', invert = TRUE, decimal_adjustment = 1e12)
 #' # Returns arbitrarily precise (1825.732 + 0.0003517861 - 0.0007035722 - 0.00000000004433787)
 #' # 99.99999% accurate. Some precision loss compared to fixed point math in solidity.
-sqrtpx96_to_price <- function(sqrtpX96, invert = FALSE, decimal_adjustment = 1e0){
-  p <- gmp::as.bigq(sqrtpX96)/(gmp::as.bigz(2)^96)
+sqrtpx96_to_price <- function(sqrtpx96, invert = FALSE, decimal_adjustment = 1e0){
+  p <- gmp::as.bigq(sqrtpx96)/(gmp::as.bigz(2)^96)
 
   if(invert){
   as.numeric(p^2)^(-1) * decimal_adjustment

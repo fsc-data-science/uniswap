@@ -6,10 +6,10 @@
 Uniswap stores prices as square roots in 64.96 (64 bits integer, 96 bit fractional)
 assume sqrt price is a rational and use gmp big integer.}
 \usage{
-sqrtpx96_to_price(sqrtpX96, invert = FALSE, decimal_adjustment = 1)
+sqrtpx96_to_price(sqrtpx96, invert = FALSE, decimal_adjustment = 1)
 }
 \arguments{
-\item{sqrtpX96}{The Uniswap 64.96 square root price to convert to human readable price.}
+\item{sqrtpx96}{The Uniswap 64.96 square root price to convert to human readable price.}
 
 \item{invert}{Default FALSE. Uniswap uses Token 1 / Token 0. You must know which token is which at the pool level.}
 
