@@ -14,7 +14,19 @@
 #' @export
 #'
 #' @examples
-#'
+#' ptbl <- ethwbtc_net_liquidity
+#' # filter to a small subset for easier manual review
+#' ptbl <- ptbl[(ptbl$tick_lower < 100000 & ptbl$tick_lower > 0), ]
+#' # append price conversions for easier manual review
+#' ptbl$price_lower <- tick_to_price(ptbl$tick_lower, 1e10, TRUE)
+#' ptbl$price_upper <- tick_to_price(ptbl$tick_upper, 1e10, TRUE)
+#' # 39.36252 ETH/BTC current price in correct yx format
+#' P = 39.36252
+#' tick = 267180
+#' # Check for next higher price. 1e10 decimal_adjustment.
+#' # Liquidity needs to be recalculated at 40.07743 ETH / BTC (the 92100-267180 position falls out of range!)
+#' find_recalculation_price(ptbl, P, price_up = TRUE, 1e10, yx = TRUE)
+
 find_recalculation_price <- function(ptbl, P, price_up = TRUE, decimal_adjustment = 1e0, yx = TRUE){
 
   if( !("tick_lower" %in% colnames(ptbl)) | !("tick_upper" %in% colnames(ptbl))){
