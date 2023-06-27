@@ -1,19 +1,20 @@
 #' Swap Across Ticks
 #'
-#' @param ptbl
-#' @param sqrtpx96
-#' @param fee_tbl
-#' @param trade_record
-#' @param dx
-#' @param dy
-#' @param decimal_x
-#' @param decimal_y
-#' @param fee
+#' @param ptbl tbd
+#' @param sqrtpx96 tbd
+#' @param fee_tbl tbd
+#' @param trade_record tbd
+#' @param dx tbd
+#' @param dy tbd
+#' @param decimal_x tbd
+#' @param decimal_y tbd
+#' @param fee tbd
 #'
-#' @return
+#' @return tbd
 #' @export
 #'
 #' @examples
+#' "tbd"
 swap_across_ticks <- function(ptbl, sqrtpx96,
                               fee_tbl = NULL,
                               trade_record = NULL,

@@ -1,4 +1,4 @@
-#' Title
+#' Price All Tokens
 #'
 #' Given an amount of tokens, a current price, and either the min or max price of a range; identify the corresponding
 #' max or min price for the Uni v3 position to use all tokens x and y. NOTE: not all pools allow all prices, see:
@@ -6,7 +6,7 @@
 #'
 #' @param x number of token 0, e.g., WBTC in ETH-WBTC 0.3 percent pool on ETH Mainnet.
 #' @param y number of token 1, e.g., ETH in ETH-WBTC 0.3 percent pool on ETH Mainnet.
-#' @param P Current price of the pool, be aware of which unit of account you are using.
+#' @param P Current (human readable) price of the pool, see ?sqrtpx96_to_price if using slot0 from a pool contract.
 #' @param pa The minimum price in position, Must be NULL if pb is not NULL.
 #' @param pb The maximum price in position. Must be NULL if pa is not NULL.
 #' @param yx Whether current price P is in Token 1 / Token 0 (y/x) format already. Default TRUE.

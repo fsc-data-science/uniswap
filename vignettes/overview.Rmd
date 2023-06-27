@@ -24,7 +24,7 @@ ETH-WBTC 0.3% Fee Tier Uniswap v3 Net Liquidity between Ticks as of a Block 17,0
 This data was taken with the following query using Flipside Crypto Uniswap liquidity_actions table.
 
 Note: `Liquidity_Adjusted` is the raw liquidity divided by `1e13`. This doesn't affect calculations for 
-proportions of liquidity a position earns.
+proportions of trade fees a position earns.
 
 ```{r}
 
@@ -68,7 +68,39 @@ ORDER BY block_number ASC, tick_lower, tick_upper
 
 ```
 
+This timestamp of data is accessible in the package via `data("ethwbtc_net_liquidity")`, for more info use 
+`?ethwbtc_net_liquidity`.
+
+# Trade History
+
+ETH-WBTC 0.3% Fee Tier Uniswap v3 Trade History from inception (May 4, 2021) to Block 17,000,000. 
+
+This data was taken with the following query using Flipside Crypto Uniswap ez_swaps table.
+
+Note: `Liquidity_Adjusted` is the raw liquidity divided by `1e13`. This doesn't affect calculations for 
+proportions of trade fees a position earns.
 
 ```{r}
+{
+  "
+/*
+ETH WBTC 0.3% fee Trades Ethereum Mainnet 
+All trades up to April 7, 2023 (Block 17M) 
+NOTE: liquidity adjusted is Liquidity / 1e13 to scale it down
+*/
+
+select block_number,  
+liquidity_adjusted,
+tick, amount0_adjusted, token0_symbol,
+amount1_adjusted, token1_symbol
+from ethereum.uniswapv3.ez_swaps
+WHERE pool_address = '0xcbcdf9626bc03e24f779434178a73a0b4bad62ed'
+AND block_number <= 17000000 
+ORDER BY BLOCK_NUMBER ASC, event_index ASC;
+  "
+}
 
 ```
+
+This timestamp of data is accessible in the package via `data("ethwbtc_trade_history")`, for more info use 
+`?ethwbtc_trade_history`.

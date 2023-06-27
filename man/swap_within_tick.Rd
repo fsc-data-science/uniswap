@@ -9,8 +9,8 @@ swap_within_tick(
   sqrtpx96,
   dx = NULL,
   dy = NULL,
-  decimal_x = 1000000000000000000,
-  decimal_y = 1000000000000000000,
+  decimal_x = 1e+18,
+  decimal_y = 1e+18,
   fee = 0.003
 )
 }

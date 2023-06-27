@@ -18,6 +18,7 @@
 #' # invert is TRUE because pool is actually ETH/USDC (Token 1 / Token 0) NOT USDC/ETH.
 #' # USDC is 6 decimals while ETH is 18 decimals (18-6 = 12 decimal_adjustment)
 #' sqrtpx96_to_price('1854219362252931989533640458424264', invert = TRUE, decimal_adjustment = 1e12)
+#' # Returns arbitrarily precise (1825.732 + 0.0003517861 - 0.0007035722 - 0.00000000004433787)
 #' # 99.99999% accurate. Some precision loss compared to fixed point math in solidity.
 sqrtpx96_to_price <- function(sqrtpX96, invert = FALSE, decimal_adjustment = 1e0){
   p <- gmp::as.bigq(sqrtpX96)/(gmp::as.bigz(2)^96)

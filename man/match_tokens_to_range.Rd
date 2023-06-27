@@ -2,7 +2,7 @@
 % Please edit documentation in R/match_tokens_to_range.R
 \name{match_tokens_to_range}
 \alias{match_tokens_to_range}
-\title{Title}
+\title{Match Tokens to Range}
 \usage{
 match_tokens_to_range(x = NULL, y = NULL, P, pa, pb, yx = TRUE)
 }
@@ -11,7 +11,7 @@ match_tokens_to_range(x = NULL, y = NULL, P, pa, pb, yx = TRUE)
 
 \item{y}{number of token 1, e.g., ETH in ETH-WBTC 0.3 percent pool on ETH Mainnet. Must be NULL if x is not NULL.}
 
-\item{P}{Current price of the pool, be aware of which unit of account you are using.}
+\item{P}{Current (human readable) price of the pool, see ?sqrtpx96_to_price if using slot0 from a pool contract.}
 
 \item{pa}{The minimum price in position.}
 

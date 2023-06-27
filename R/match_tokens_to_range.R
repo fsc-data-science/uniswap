@@ -1,11 +1,11 @@
-#' Title
+#' Match Tokens to Range
 #'
 #' Given current price, a price range, and an amount of 1 token; identify how much of the other token is required create
 #' the Uni v3 position.
 #'
 #' @param x number of token 0, e.g., WBTC in ETH-WBTC 0.3 percent pool on ETH Mainnet. Must be NULL if y is not NULL.
 #' @param y number of token 1, e.g., ETH in ETH-WBTC 0.3 percent pool on ETH Mainnet. Must be NULL if x is not NULL.
-#' @param P Current price of the pool, be aware of which unit of account you are using.
+#' @param P Current (human readable) price of the pool, see ?sqrtpx96_to_price if using slot0 from a pool contract.
 #' @param pa The minimum price in position.
 #' @param pb The maximum price in position.
 #' @param yx Whether current price P is in Token 1 / Token 0 (y/x) format already. Default TRUE.

@@ -5,10 +5,10 @@
 #'
 #' @param P price in human readable form (e.g., 0.05 BTC/ETH).
 #' @param invert Default FALSE. Uniswap uses Token 1 / Token 0. You must know which token is which at the pool level.
-#' @param decimal_adjustment 10^(decimal difference). WBTC has 8 decimals, ETH has 18. See example.
+#' @param decimal_adjustment 10^(decimal difference). WBTC has 8 decimals, ETH has 18, so it'd be `1e10`.
 #'
 #' @return Big Integer price in sqrtpx96 format. Note, small amount of
-#' precision loss (<0.01%) possible due to not adjusting for Solidity implementation of
+#' precision loss (<0.001%) possible due to not adjusting for Solidity implementation of
 #' Chinese Remainder Theorem as solidity uses fixed point math.
 #' @import gmp
 #' @export
@@ -20,7 +20,8 @@
 #' # invert is TRUE because pool is actually ETH/USDC (Token 1 / Token 0) NOT USDC/ETH.
 #' # USDC is 6 decimals while ETH is 18 decimals (18-6 = 12 decimal_adjustment)
 #' price_to_sqrtpx96(1825.732, invert = TRUE, decimal_adjustment = 1e12)
-#' # 99.99999% accurate. Some precision loss compared to fixed point math in solidity.
+#' # Returns: 1854219183615346559398951258161152 which is 99.99999% accurate.
+#' # Some precision loss compared to fixed point math in solidity.
 price_to_sqrtpx96 <- function(P, invert = FALSE, decimal_adjustment = 1e0){
 
   if(invert){

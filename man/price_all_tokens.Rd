@@ -2,7 +2,7 @@
 % Please edit documentation in R/price_all_tokens.R
 \name{price_all_tokens}
 \alias{price_all_tokens}
-\title{Title}
+\title{Price All Tokens}
 \usage{
 price_all_tokens(x, y, P, pa = NULL, pb = NULL, yx = TRUE)
 }
@@ -11,7 +11,7 @@ price_all_tokens(x, y, P, pa = NULL, pb = NULL, yx = TRUE)
 
 \item{y}{number of token 1, e.g., ETH in ETH-WBTC 0.3 percent pool on ETH Mainnet.}
 
-\item{P}{Current price of the pool, be aware of which unit of account you are using.}
+\item{P}{Current (human readable) price of the pool, see ?sqrtpx96_to_price if using slot0 from a pool contract.}
 
 \item{pa}{The minimum price in position, Must be NULL if pb is not NULL.}
 

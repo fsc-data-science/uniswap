@@ -4,19 +4,31 @@
 \alias{price_to_sqrtpx96}
 \title{Price to SQRTPX96}
 \usage{
-price_to_sqrtpx96(P)
+price_to_sqrtpx96(P, invert = FALSE, decimal_adjustment = 1)
 }
 \arguments{
-\item{P}{price in standard form (e.g., 0.05 BTC/ETH). Be aware of the pool specific
-token 0 and token 1 as this function takes your number as is.}
+\item{P}{price in human readable form (e.g., 0.05 BTC/ETH).}
+
+\item{invert}{Default FALSE. Uniswap uses Token 1 / Token 0. You must know which token is which at the pool level.}
+
+\item{decimal_adjustment}{10^(decimal difference). WBTC has 8 decimals, ETH has 18, so it'd be `1e10`.}
 }
 \value{
-Big Integer price in sqrtpx96 format.
+Big Integer price in sqrtpx96 format. Note, small amount of
+precision loss (<0.001%) possible due to not adjusting for Solidity implementation of
+Chinese Remainder Theorem as solidity uses fixed point math.
 }
 \description{
 Uniswap stores prices as square roots in 64.96 (64 bits integer, 96 bit fractional)
-assume sqrt price is a rational and use gmp big integer
+assume sqrt price is a rational and use gmp big integer.
 }
 \examples{
-price_to_sqrtpx96(0.05) == gmp::as.bigq('17715955711429570570949230592')
+# see the reverse function ?sqrtpx96_to_price
+# For Ethereum Mainnet ETH-USDC 0.05\% v3 Pool example:
+# $1,825.732 USDC/ETH -> 1854219362252931989533640458424264 (Slot0 in Pool Contract)
+# invert is TRUE because pool is actually ETH/USDC (Token 1 / Token 0) NOT USDC/ETH.
+# USDC is 6 decimals while ETH is 18 decimals (18-6 = 12 decimal_adjustment)
+price_to_sqrtpx96(1825.732, invert = TRUE, decimal_adjustment = 1e12)
+# Returns: 1854219183615346559398951258161152 which is 99.99999\% accurate.
+# Some precision loss compared to fixed point math in solidity.
 }

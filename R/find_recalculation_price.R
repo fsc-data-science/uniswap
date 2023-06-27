@@ -1,13 +1,14 @@
 #' Find Recalculation Price
 #'
-#' @param positions
-#' @param current_price
-#' @param price_up
+#' @param positions tbd
+#' @param current_price tbd
+#' @param price_up tbd
 #'
-#' @return
+#' @return tbd
 #' @export
 #'
 #' @examples
+#' "tbd"
 find_recalculation_price <- function(positions, current_price, price_up = TRUE){
 
   p <- positions[, c("min_price","max_price")]

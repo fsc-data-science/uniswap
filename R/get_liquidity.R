@@ -4,8 +4,8 @@
 #' in their full decimal form (i.e., convert ETH to Wei by multiplying by 1e18 beforehand!).
 #' It takes human readable prices P, pa, pb, for simplicity, so do not use price_to_sqrtpx96() beforehand.
 #'
-#' @param x amount of token 0 in the exact form, i.e., adjust for decimals (e.g., x1e6 for USDC).
-#' @param y amount of token 1, in the exact form,  i.e., adjust for decimals (e.g., x1e18 for ETH).
+#' @param x amount of token 0 in the exact form, i.e., adjust for decimals (e.g., x1e6 for USDC). Use gmp::as.bigz() as needed.
+#' @param y amount of token 1, in the exact form,  i.e., adjust for decimals (e.g., x1e18 for ETH). Use gmp::as.bigz() as needed.
 #' @param P Price, ideally in token 1/token 0 format. If not, use yx = FALSE.
 #' @param pa Minimum price of a range, e.g., 0.05 in a 0.05 - 0.25 BTC/ETH position range.
 #' @param pb Maximum price of a range, e.g., 0.25 in a 0.05 - 0.25 BTC/ETH position range.
@@ -17,13 +17,28 @@
 #'
 #' @examples
 #' # See: https://science.flipsidecrypto.xyz/uni_v3_explained/#Tracking_Liquidity
+#'
 #' x = as.bigz('1139289230675491064') # 1.13 LINK, token 0, 18 decimals
 #' y = as.bigz(0.005*1e18) # 0.005 MKR, token 1, 18 decimals
-#' P = 0.009264495 # taken from contract using sqrtpx96_to_price() available in Uni v3 UI.
+#'
+#' # see sqrtpx96_to_price('7625888651129286871474510862') using Slot0 at time
+#' P = 0.009264495 #  This is MKR/LINK (Token 1 / Token 0, so we'll use yx = TRUE in get_liquidity)
+#'
+#' # It is required that min_tick < max_tick.
 #' min_tick <- -50100
 #' max_tick <- -39120
-#' pa = tick_to_price(min_tick)
-#' pb = tick_to_price(max_tick)
+#'
+#' # Such that, price might need to be inverted and min and max switched
+#' # to enforce min_tick < max_tick when calculating liquidity.
+#' # Here, because 1 MKR (Token 1) > 1 LINK (Token 0) ticks are negative and yx = FALSE is used to get pa and pb
+#' # pa, min price, is the lowest amount of MKR for 1 LINK (LINK is relatively low value compared to MKR)
+#' # pa, max price, is highest amount of MKR for 1 LINK (LINK is relatively high value compared MKR)
+#' # Recall at & below the minimum price the position is 100% Token 0 (LINK), and
+#' # at & above the maximum price the position is 100% Token 1 (MKR).
+#'
+#' pa = 0.006672574 # tick_to_price(-50100, 1e0, yx = FALSE)
+#' pb = 0.02000437  # tick_to_price(-39120, 1e0, yx = FALSE)
+
 #' # Uniswap value:    343255264548669212
 #' # Calculated value: 343255263830421644
 #' # Within 0.000001% precision loss
