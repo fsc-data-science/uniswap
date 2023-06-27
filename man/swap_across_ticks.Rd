@@ -11,35 +11,38 @@ swap_across_ticks(
   trade_record = NULL,
   dx = NULL,
   dy = NULL,
-  decimal_x = 1e+18,
-  decimal_y = 1e+18,
+  decimal_x = 1000000000000000000,
+  decimal_y = 1000000000000000000,
   fee = 0.003
 )
 }
 \arguments{
-\item{ptbl}{tbd}
+\item{ptbl}{Liquidity Positions table of the form tick_lower, tick_upper, liquidity. See ?ethwbtc_net_liquidity for an example.
+This included dataset is net_liquidity, so it should be filtered to the max blockheight for a given tick_lower-tick_upper.}
 
-\item{sqrtpx96}{tbd}
+\item{sqrtpx96}{The Current price of the pool in Uniswap 64.96 square root price. Can be in gmp::as.bigz() or a "string". See ?price_to_sqrtpx96.}
 
-\item{fee_tbl}{tbd}
+\item{fee_tbl}{A table of fees accumulated in the trade so far. Default NULL will construct a fresh table as this function calls itself recursively.}
 
-\item{trade_record}{tbd}
+\item{trade_record}{A table of trade histories within the trade so far. Default NULL will construct a fresh table as this function calls itself recursively.}
 
-\item{dx}{tbd}
+\item{dx}{the human readable amount of token 0 you are trading with the pool (i.e., adjust for decimal using decimal_x not here). NULL if you are instead trading token 1.}
 
-\item{dy}{tbd}
+\item{dy}{NULL if you are trading token 0. Otherwise, the human readable amount of token 1 you are trading with the pool (i.e., adjust for decimal using decimal_y not here).}
 
-\item{decimal_x}{tbd}
+\item{decimal_x}{The decimals used in token 0, e.g., 1e6 for USDC, 1e8 for WBTC.}
 
-\item{decimal_y}{tbd}
+\item{decimal_y}{The decimals used in token 1, e.g., 1e18 for WETH.}
 
-\item{fee}{tbd}
+\item{fee}{The pool fee, default 0.3\% (0.003). Generally one of: 0.0001, 0.0005, 0.003, 0.01}
 }
 \value{
 tbd
 }
 \description{
-Swap Across Ticks
+This function loops through a trade given the swap amount and available liquidity (including inactive positions) to
+calculate the amount received, resulting fees paid to each position, and the final price including a history of trades. It recalculates price
+as needed via ?find_recalculation_price while looping through ?swap_within_tick and ?check_positions to get the final result.
 }
 \examples{
 "tbd"

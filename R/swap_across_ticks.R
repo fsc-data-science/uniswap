@@ -1,15 +1,19 @@
 #' Swap Across Ticks
 #'
-#' @param ptbl tbd
-#' @param sqrtpx96 tbd
-#' @param fee_tbl tbd
-#' @param trade_record tbd
-#' @param dx tbd
-#' @param dy tbd
-#' @param decimal_x tbd
-#' @param decimal_y tbd
-#' @param fee tbd
+#' This function loops through a trade given the swap amount and available liquidity (including inactive positions) to
+#' calculate the amount received, resulting fees paid to each position, and the final price including a history of trades. It recalculates price
+#' as needed via ?find_recalculation_price while looping through ?swap_within_tick and ?check_positions to get the final result.
 #'
+#' @param ptbl Liquidity Positions table of the form tick_lower, tick_upper, liquidity. See ?ethwbtc_net_liquidity for an example.
+#' This included dataset is net_liquidity, so it should be filtered to the max blockheight for a given tick_lower-tick_upper.
+#' @param sqrtpx96 The Current price of the pool in Uniswap 64.96 square root price. Can be in gmp::as.bigz() or a "string". See ?price_to_sqrtpx96.
+#' @param fee_tbl A table of fees accumulated in the trade so far. Default NULL will construct a fresh table as this function calls itself recursively.
+#' @param trade_record A table of trade histories within the trade so far. Default NULL will construct a fresh table as this function calls itself recursively.
+#' @param dx the human readable amount of token 0 you are trading with the pool (i.e., adjust for decimal using decimal_x not here). NULL if you are instead trading token 1.
+#' @param dy NULL if you are trading token 0. Otherwise, the human readable amount of token 1 you are trading with the pool (i.e., adjust for decimal using decimal_y not here).
+#' @param decimal_x The decimals used in token 0, e.g., 1e6 for USDC, 1e8 for WBTC.
+#' @param decimal_y The decimals used in token 1, e.g., 1e18 for WETH.
+#' @param fee The pool fee, default 0.3\% (0.003). Generally one of: 0.0001, 0.0005, 0.003, 0.01
 #' @return tbd
 #' @export
 #'
@@ -37,7 +41,7 @@ swap_across_ticks <- function(ptbl, sqrtpx96,
   if(is.null(dx)){
 
     amount <- dy
-    price <- sqrtpx96_to_price(sqrtpX96 = sqrtpx96)
+    price <- sqrtpx96_to_price(sqrtpX96 = sqrtpx96, invert = FALSE, decimal_adjustment = (decimal_y-decimal_x) )
     update_ptbl <- check_positions(ptbl, price)
 
 
