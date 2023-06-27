@@ -12,7 +12,7 @@
 #' on Ethereum mainnet at the contract level is ETH per USDC, but this is harder to interpret than the inverse.
 #' Default is TRUE.
 #'
-#' @return A numeric price in desired format. See ?get_closest_tick for the reverse process.
+#' @return A numeric price in desired format. See ?get_closest_tick with `tick_spacing = 1` for the reverse process.
 #' @export
 #' @examples
 #'  # 1,351.327 USDC per ETH (i.e., yx = FALSE because pool is actually ETH/USDC);

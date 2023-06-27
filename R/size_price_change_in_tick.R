@@ -2,15 +2,16 @@
 #' Size Price Change in Tick
 #'
 #' Given liquidity, a current price, a target price, and the fee tier of a pool
-#' calculate how large a trade would be required to get to the target price.
+#' calculate how large a trade would be required to get to the target price. This is used to identify
+#' the swap size that would trigger a liquidity recalculation (i.e., it is possible a position fell out of range).
+#' Lower fee tiers have more narrow allowable ticks for positions, so they have more recalculation checks.
 #'
 #' @param L active amount of liquidity in the pool, as big integer.
-#' See get_liquidity() or read a pool contract's liquidity directly on etherscan to get this value.
-#' @param sqrtpx96 current price in uint160 format.
-#' See price_to_sqrtpx96() or read a pool contract's sqrtPriceX96 within it's slot0 on etherscan to get this value.
-#' @param sqrtpx96_target target price in uint160 format. See price_to_sqrtpx96().
+#' See ?get_liquidity or read a pool contract's liquidity directly on etherscan to get this value.
+#' @param sqrtpx96 current price in uint160 format.See ?price_to_sqrtpx96 or read a pool contract's sqrtPriceX96 within it's slot0 on etherscan to get this value.
+#' @param sqrtpx96_target target price in uint160 format. See ?price_to_sqrtpx96.
 #' @param dx TRUE or FALSE. Whether the amount needed to trade should be denominated in token 0 (TRUE) or token 1 (FALSE).
-#' @param decimal_adjustment decimal of token 0 (if dx == TRUE) or decimal of token 1 (if dx == FALSE).
+#' @param decimal_adjustment decimal of token 0 (if dx == TRUE) or decimal of token 1 (if dx == FALSE). NOT the difference in decimals between the two. 1e6 for USDC. 1e8 for WBTC, 1e18 for WETH etc.
 #' @param fee The pool fee, default 0.3\% (0.003). Generally one of: 0.0001, 0.0005, 0.003, 0.01
 #'
 #' @return Returns the human readable (i.e., decimal adjusted) amount the trader needs to trade in the desired unit (token 0 for dx = TRUE)
@@ -31,7 +32,8 @@
 #' sqrtpx96_target = '7625888580652810738255925731',
 #'  # return the amount of token 0 which is LINK
 #' dx = TRUE,
-#' fee = 0.003) / 0.00000003067549 - 1 < 0.00001
+#' decimal_adjustment = 1e18, # LINK is standard ERC20
+#' fee = 0.003)
 #'
 #' # dx = FALSE shows
 #' # -0.0000000002841929 MKR removed from pool (i.e., bought by Trader).
@@ -41,7 +43,8 @@
 #' sqrtpx96_target = '7625888580652810738255925731',
 #' # return the amount of token 0 which is LINK
 #' dx = FALSE,
-#' fee = 0.003) / -0.0000000002841929 - 1 < 0.00001
+#' decimal_adjustment = 1e18, # MKR is standard ERC20
+#' fee = 0.003)
 #'
 size_price_change_in_tick <- function(L, sqrtpx96, sqrtpx96_target, dx = TRUE,
                                       decimal_adjustment = 1e18, fee = 0.003){

@@ -15,16 +15,15 @@ size_price_change_in_tick(
 }
 \arguments{
 \item{L}{active amount of liquidity in the pool, as big integer.
-See get_liquidity() or read a pool contract's liquidity directly on etherscan to get this value.}
+See ?get_liquidity or read a pool contract's liquidity directly on etherscan to get this value.}
 
-\item{sqrtpx96}{current price in uint160 format.
-See price_to_sqrtpx96() or read a pool contract's sqrtPriceX96 within it's slot0 on etherscan to get this value.}
+\item{sqrtpx96}{current price in uint160 format.See ?price_to_sqrtpx96 or read a pool contract's sqrtPriceX96 within it's slot0 on etherscan to get this value.}
 
-\item{sqrtpx96_target}{target price in uint160 format. See price_to_sqrtpx96().}
+\item{sqrtpx96_target}{target price in uint160 format. See ?price_to_sqrtpx96.}
 
 \item{dx}{TRUE or FALSE. Whether the amount needed to trade should be denominated in token 0 (TRUE) or token 1 (FALSE).}
 
-\item{decimal_adjustment}{decimal of token 0 (if dx == TRUE) or decimal of token 1 (if dx == FALSE).}
+\item{decimal_adjustment}{decimal of token 0 (if dx == TRUE) or decimal of token 1 (if dx == FALSE). NOT the difference in decimals between the two. 1e6 for USDC. 1e8 for WBTC, 1e18 for WETH etc.}
 
 \item{fee}{The pool fee, default 0.3\% (0.003). Generally one of: 0.0001, 0.0005, 0.003, 0.01}
 }
@@ -36,7 +35,9 @@ Positive results are adds to the pool (trader sells); negative results are remov
 }
 \description{
 Given liquidity, a current price, a target price, and the fee tier of a pool
-calculate how large a trade would be required to get to the target price.
+calculate how large a trade would be required to get to the target price. This is used to identify
+the swap size that would trigger a liquidity recalculation (i.e., it is possible a position fell out of range).
+Lower fee tiers have more narrow allowable ticks for positions, so they have more recalculation checks.
 }
 \examples{
 # See: https://science.flipsidecrypto.xyz/uni_v3_explained/#Swap_across_Ticks
@@ -50,7 +51,8 @@ sqrtpx96 = "7625888646051765535543132160",
 sqrtpx96_target = '7625888580652810738255925731',
  # return the amount of token 0 which is LINK
 dx = TRUE,
-fee = 0.003) / 0.00000003067549 - 1 < 0.00001
+decimal_adjustment = 1e18, # LINK is standard ERC20
+fee = 0.003)
 
 # dx = FALSE shows
 # -0.0000000002841929 MKR removed from pool (i.e., bought by Trader).
@@ -60,6 +62,7 @@ sqrtpx96 = "7625888646051765535543132160",
 sqrtpx96_target = '7625888580652810738255925731',
 # return the amount of token 0 which is LINK
 dx = FALSE,
-fee = 0.003) / -0.0000000002841929 - 1 < 0.00001
+decimal_adjustment = 1e18, # MKR is standard ERC20
+fee = 0.003)
 
 }

@@ -4,19 +4,21 @@
 \alias{check_positions}
 \title{Check Positions}
 \usage{
-check_positions(ptbl, P)
+check_positions(ptbl, P, decimal_adjustment = 1, yx = TRUE)
 }
 \arguments{
-\item{ptbl}{tbd}
+\item{ptbl}{Liquidity Positions table of the form tick_lower, tick_upper, liquidity. See ?ethwbtc_net_liquidity for an example.
+This included dataset is net_liquidity, so it should be filtered to the max blockheight for a given tick_lower-tick_upper.}
 
-\item{P}{tbd}
+\item{P}{Specific price in human readable format, converted to tick for flagging using ?get_closest_tick with tick_spacing = 1.}
 }
 \value{
-tbd
+The liquidity positions table with a new `active` flag column for whether the liquidity is active or not at price P.
 }
 \description{
-Check Positions
+Simple helper function for flagging liquidity positions as active or not active at a specific price.
 }
 \examples{
-"tbd"
+data("ethwbtc_net_liquidity")
+ethwbtc_net_liquidity <- check_positions(ethwbtc_net_liquidity, P = 0.10, decimal_adjustment = 1e10, yx = FALSE)
 }

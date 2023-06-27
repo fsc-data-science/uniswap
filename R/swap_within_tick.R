@@ -1,23 +1,20 @@
 #' Swap Within a Tick
 #'
-#' @description This function calculates the amount of assets coming out of a trade from a pool
-#' given the active Liquidity, the current price, the amounts of each asset, and the pool fee.
+#' @description This function calculates the amount of an asset coming out of a trade from a pool
+#' given the active Liquidity, the current price, the amount of the other asset, and the pool fee.
 #' For simplicity it supports decimal separation to retain human readable swaps.
 #'
 #' @param L active amount of liquidity in the pool, as big integer.
-#' See get_liquidity() or read a pool contract's liquidity directly on etherscan to get this value.
-#' @param sqrtpx96 current price in uint160 format.
-#' See price_to_sqrtpx96() or read a pool contract's sqrtPriceX96 within it's slot0 on etherscan to get this value.
-#' @param dx the human readable amount of token 0 you are trading with the pool.
-#' Otherwise, NULL if you are instead trading token 1.
-#' @param dy NULL if you are trading token 0.
-#' Otherwise, the human readable amount of token 1 you are trading with the pool.
-#' @param decimal_x The decimals used in token 0, e.g., 1e18 for ETH, 1e6 for USDC.
-#' @param decimal_y The decimals used in token 1, e.g., 1e6 for USDC, 1e8 for WBTC.
+#' See ?get_liquidity or read a pool contract's liquidity directly on etherscan to get this value.
+#' @param sqrtpx96 current price in uint160 format.See ?price_to_sqrtpx96 or read a pool contract's sqrtPriceX96 within it's slot0 on etherscan to get this value.
+#' @param dx the human readable amount of token 0 you are trading with the pool (i.e., adjust for decimal using decimal_x not here). NULL if you are instead trading token 1.
+#' @param dy NULL if you are trading token 0. Otherwise, the human readable amount of token 1 you are trading with the pool (i.e., adjust for decimal using decimal_y not here).
+#' @param decimal_x The decimals used in token 0, e.g., 1e6 for USDC, 1e8 for WBTC.
+#' @param decimal_y The decimals used in token 1, e.g., 1e18 for WETH.
 #' @param fee The pool fee, default 0.3\% (0.003). Generally one of: 0.0001, 0.0005, 0.003, 0.01
 #'
 #' @return Swap functions return lists. For a token 0 -> token 1 swap a list of:
-#' \item{liquidity}{amount of liquidity in the pool after the trade (will always match L in swap_within_tick())}
+#' \item{liquidity}{amount of liquidity in the pool after the trade (will always match L in swap_within_tick() this function does not auto-recalculate. See ?size_price_change_in_tick)}
 #' \item{dx}{ the amount of token 0 added (i.e. sold by user) to the pool (FEES separated)}
 #' \item{dy}{ the amount of token 1 removed (i.e. bought by user) from the pool}
 #' \item{price1}{ the initial sqrtpx96 price of the pool before the swap}
@@ -26,18 +23,19 @@
 #
 #' @export
 #' @details This function assumes the amounts traded do not cause a recalculation of active liquidity.
-#' If you have access to all available positions in a pool (including those out of range that may become in-range during a swap)
-#' you should instead use swap_across_ticks().
+#' If you have access to the liquidity across positions in a pool (including those out of range that may become in-range during a swap)
+#' you should instead use ?swap_across_ticks.
 #' This function should be within tolerable precision loss for small swaps on deep pools if
-#' the positions table is not available.
+#' a positions table is not available.
 #' @examples
-#' # Trading LINK for MKR on an Optimism pool.
+#' # Trading 0.000000030675491064 LINK for 0.0000000002833404 MKR on a real Optimism pool.
 #' # see ?get_liquidity
 #' L = '343255264548669212'
 #' # see ?price_to_sqrtpx96
 #' P = 0.009264495
+#' Px96 = price_to_sqrtpx96(P, invert = FALSE, decimal_adjustment = 1)
 #' swap_within_tick(L = L,
-#' sqrtpx96 = price_to_sqrtpx96(P),
+#' sqrtpx96 = Px96,
 #' dx = 0.000000030675491064, # selling tiny amount of LINK
 #' dy = NULL, # how much MKR will be returned?
 #' decimal_x = 1e18, # LINK has 18 decimals
