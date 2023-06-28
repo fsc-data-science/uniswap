@@ -15,10 +15,22 @@
 #' @param decimal_y The decimals used in token 1, e.g., 1e18 for WETH.
 #' @param fee The pool fee, default 0.3\% (0.003). Generally one of: 0.0001, 0.0005, 0.003, 0.01
 #' @return tbd
+#' @import gmp
 #' @export
 #'
 #' @examples
-#' "tbd"
+#' data(ethwbtc_trade_history)
+#' data(ethwbtc_net_liquidity)
+#' blockheight <- 16115539
+#' l539 <- liquidity_asof_block(ethwbtc_net_liquidity, blockheight = blockheight)
+#' # Taken from Quicknode as of blockheight
+#' sqrtpx96 <- gmp::as.bigz("28920208462486575390334957222100992")
+#' # rough estimate that is within 0.01\% is to take price from trade data tick.
+#' most_recent_trade_tick <- tail(ethwbtc_trade_history[ethwbtc_trade_history$block_number <= blockheight, "tick"], 1)
+#' sqrtptx96_from_tick <- price_to_sqrtpx96(P = tick_to_price(most_recent_trade_tick, 1e10), invert = FALSE, 1e10)
+#' abs(as.numeric(sqrtptx96_from_tick/sqrtpx96)) - 1 < 0.00001 # very close together
+#' swap_across_ticks(l539, sqrtpx96, NULL, NULL, NULL, 0.03, 1e8, 1e18, 0.003)
+
 swap_across_ticks <- function(ptbl, sqrtpx96,
                               fee_tbl = NULL,
                               trade_record = NULL,
@@ -27,6 +39,9 @@ swap_across_ticks <- function(ptbl, sqrtpx96,
                               decimal_x = 1e18,
                               decimal_y = 1e18,
                               fee = 0.003){
+browser()
+  # compare decimals to get adjustment
+  decimal_adjustment <- max( c(decimal_y/decimal_x, decimal_x/decimal_y) )
 
   if(is.null(dx) & is.null(dy)){
     stop("A change in x or y is required to use liquidity")
@@ -41,44 +56,47 @@ swap_across_ticks <- function(ptbl, sqrtpx96,
   if(is.null(dx)){
 
     amount <- dy
-    price <- sqrtpx96_to_price(sqrtpX96 = sqrtpx96, invert = FALSE, decimal_adjustment = (decimal_y-decimal_x) )
-    update_ptbl <- check_positions(ptbl, price)
+    price <- sqrtpx96_to_price(sqrtpx96 = sqrtpx96, invert = FALSE, decimal_adjustment = decimal_adjustment )
+    update_ptbl <- check_positions(ptbl, price, decimal_adjustment = decimal_adjustment, yx = TRUE)
 
 
     # record fees separately
     # if it is blank assume this is a fresh swap and make the fee tbl
     if(is.null(fee_tbl)){
-      fee_tbl <-  update_ptbl[, c("position","liquidity", "active")]
+      fee_tbl <-  update_ptbl[, c("tick_lower", "tick_upper","liquidity", "active")]
       fee_tbl$yfee <- 0
 
       # otherwise refresh the active positions but retain any previous fee
     } else {
       yfee = fee_tbl$yfee
-      fee_tbl <-  update_ptbl[,c("position","liquidity", "active")]
+      fee_tbl <-  update_ptbl[,c("tick_lower", "tick_upper","liquidity", "active")]
       fee_tbl$yfee <- yfee
     }
 
-    recalc_price <- find_recalculation_price(positions = update_ptbl,
-                                             current_price = price,
-                                             price_up = TRUE)
+    recalc_price <- find_recalculation_price(ptbl = update_ptbl,
+                                             P = price,
+                                             price_up = TRUE,
+                                             decimal_adjustment = decimal_adjustment,
+                                             yx = TRUE)
 
     # sum liquidity in active positions
-    current_L <- sum(as.bigz(update_ptbl$liquidity[update_ptbl$active]))
+    # note, liquidity from trade table may differ if there are data issues, but should be close.
+    current_L <- sum(gmp::as.bigz(update_ptbl$liquidity[update_ptbl$active]))
 
     # maximum change without recalc
     max_y <- size_price_change_in_tick(
       L = current_L,
       sqrtpx96 = sqrtpx96,
-      sqrtpx96_target = price_to_sqrtpx96(recalc_price),
+      sqrtpx96_target = price_to_sqrtpx96(recalc_price, invert = FALSE, decimal_adjustment = decimal_adjustment),
       dx = FALSE, # return dy to sell
-      decimal_adjustment = decimal_y,
+      decimal_scale = decimal_y, # scale is 1 token, adjustment is between 2 tokens.
       fee = fee)
 
     # if you can sell without recalculation; swap within tick
     if(max_y >= amount){
 
       swap = swap_within_tick(L = current_L,
-                              sqrtpx96 = price_to_sqrtpx96(price),
+                              sqrtpx96 = price_to_sqrtpx96(P = price, invert = FALSE, decimal_adjustment = decimal_adjustment),
                               dy = amount,
                               decimal_x = decimal_x,
                               decimal_y = decimal_y,
