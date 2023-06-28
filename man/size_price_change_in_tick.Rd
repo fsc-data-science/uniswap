@@ -14,7 +14,7 @@ size_price_change_in_tick(
 )
 }
 \arguments{
-\item{L}{active amount of liquidity in the pool, as big integer.
+\item{L}{active raw amount of liquidity in the pool, as big integer. (Do not use adjusted_liquidity without scaling up 1e13 or answer will be off).
 See ?get_liquidity or read a pool contract's liquidity directly on etherscan to get this value.}
 
 \item{sqrtpx96}{current price in uint160 format.See ?price_to_sqrtpx96 or read a pool contract's sqrtPriceX96 within it's slot0 on etherscan to get this value.}
