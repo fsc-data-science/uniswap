@@ -8,7 +8,8 @@
 #'   \item{block_number}{Ethereum mainnet block number}
 #'   \item{tick_lower}{The lower price range for a Uniswap v3 position(s)}
 #'   \item{tick_upper}{The higher price range for a Uniswap v3 position(s)}
-#'   \item{net_adjusted_liquidity}{The total liquidity available between the ticks as of the block_number (i.e. cumulative of deposits and withdraws across all positions with the same tick_lower-tick_upper)}
+#'   \item{net_adjusted_liquidity}{The total liquidity (adjusted by 1e-13) available between the ticks as of the block_number (i.e. cumulative of deposits and withdraws across all positions with the same tick_lower-tick_upper)}
+#'   \item{liquidity}{The raw liquidity (adjusted * 1e13) available between the ticks as of the block_number. Required for correct swap sizing.}
 #' }
 #' @source \href{https://flipsidecrypto.xyz/}{Flipside Crypto}
 "ethwbtc_net_liquidity"

@@ -6,7 +6,7 @@
 #' the swap size that would trigger a liquidity recalculation (i.e., it is possible a position fell out of range).
 #' Lower fee tiers have more narrow allowable ticks for positions, so they have more recalculation checks.
 #'
-#' @param L active amount of liquidity in the pool, as big integer.
+#' @param L active raw amount of liquidity in the pool, as big integer. (Do not use adjusted_liquidity without scaling up 1e13 or answer will be off).
 #' See ?get_liquidity or read a pool contract's liquidity directly on etherscan to get this value.
 #' @param sqrtpx96 current price in uint160 format.See ?price_to_sqrtpx96 or read a pool contract's sqrtPriceX96 within it's slot0 on etherscan to get this value.
 #' @param sqrtpx96_target target price in uint160 format. See ?price_to_sqrtpx96.

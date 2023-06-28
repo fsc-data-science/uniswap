@@ -24,7 +24,7 @@ ETH-WBTC 0.3% Fee Tier Uniswap v3 Net Liquidity between Ticks as of a Block 17,0
 This data was taken with the following query using Flipside Crypto Uniswap liquidity_actions table.
 
 Note: `Liquidity_Adjusted` is the raw liquidity divided by `1e13`. This doesn't affect calculations for 
-proportions of trade fees a position earns.
+proportions of trade fees a position earns. But for sizing swaps it must match.
 
 ```{r}
 
