@@ -9,7 +9,7 @@ size_price_change_in_tick(
   sqrtpx96,
   sqrtpx96_target,
   dx = TRUE,
-  decimal_adjustment = 1e+18,
+  decimal_scale = 1000000000000000000,
   fee = 0.003
 )
 }
@@ -23,7 +23,7 @@ See ?get_liquidity or read a pool contract's liquidity directly on etherscan to 
 
 \item{dx}{TRUE or FALSE. Whether the amount needed to trade should be denominated in token 0 (TRUE) or token 1 (FALSE).}
 
-\item{decimal_adjustment}{decimal of token 0 (if dx == TRUE) or decimal of token 1 (if dx == FALSE). NOT the difference in decimals between the two. 1e6 for USDC. 1e8 for WBTC, 1e18 for WETH etc.}
+\item{decimal_scale}{decimal of token 0 (if dx == TRUE) or decimal of token 1 (if dx == FALSE). NOT decimal_adjustment between the two. 1e6 for USDC. 1e8 for WBTC, 1e18 for WETH etc.}
 
 \item{fee}{The pool fee, default 0.3\% (0.003). Generally one of: 0.0001, 0.0005, 0.003, 0.01}
 }
@@ -51,7 +51,7 @@ sqrtpx96 = "7625888646051765535543132160",
 sqrtpx96_target = '7625888580652810738255925731',
  # return the amount of token 0 which is LINK
 dx = TRUE,
-decimal_adjustment = 1e18, # LINK is standard ERC20
+decimal_scale = 1e18, # LINK is standard ERC20
 fee = 0.003)
 
 # dx = FALSE shows
@@ -62,7 +62,7 @@ sqrtpx96 = "7625888646051765535543132160",
 sqrtpx96_target = '7625888580652810738255925731',
 # return the amount of token 0 which is LINK
 dx = FALSE,
-decimal_adjustment = 1e18, # MKR is standard ERC20
+decimal_scale = 1e18, # MKR is standard ERC20
 fee = 0.003)
 
 }
