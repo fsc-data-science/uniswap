@@ -34,7 +34,7 @@ P = 0.1, # and a current price of 0.1 BTC/ETH
  pa = NULL, # what minimum BTC/ETH price
  pb = 0.25, # matches 0.25 BTC/ETH max price
  yx = FALSE) # the unit of account used: BTC/ETH is NOT the pool's Token 1 / Token 0 price.
- Function will handle all inversions.
+ # Function will handle all inversions.
 
 price_all_tokens(x = 100, # given 100 BTC
 y = 1000, # 1000 ETH

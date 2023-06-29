@@ -20,7 +20,7 @@ Chinese Remainder Theorem as solidity uses fixed point math.
 }
 \description{
 Uniswap stores prices as square roots in 64.96 (64 bits integer, 96 bit fractional)
-assume sqrt price is a rational and use gmp big integer.
+ assume sqrt price is a rational and use gmp big integer.
 }
 \examples{
 # see the reverse function ?sqrtpx96_to_price

@@ -2,9 +2,7 @@
 % Please edit documentation in R/sqrtpx96_to_price.R
 \name{sqrtpx96_to_price}
 \alias{sqrtpx96_to_price}
-\title{Price to SQRTPX96
-Uniswap stores prices as square roots in 64.96 (64 bits integer, 96 bit fractional)
-assume sqrt price is a rational and use gmp big integer.}
+\title{Price to SQRTPX96}
 \usage{
 sqrtpx96_to_price(sqrtpx96, invert = FALSE, decimal_adjustment = 1)
 }
@@ -21,7 +19,6 @@ precision loss (<0.01%) possible due to not adjusting for Solidity implementatio
 Chinese Remainder Theorem as solidity uses fixed point math.
 }
 \description{
-Price to SQRTPX96
 Uniswap stores prices as square roots in 64.96 (64 bits integer, 96 bit fractional)
 assume sqrt price is a rational and use gmp big integer.
 }

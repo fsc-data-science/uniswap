@@ -10,7 +10,7 @@
 #' @param decimal_adjustment The difference in the tokens decimals, e.g., 1e10 for ETH vs BTC. 1e12 for USDC vs ETH; 1 (default) for most ERC20/ETH.
 #' @param yx Whether price is already in Token 1 / Token 0 format or inverted. ETH per USDC is how the ETH Mainnet 0.05\% pool works but is not friendly for human interpretation. Default is TRUE.
 #'
-#' @return tbd
+#' @return Returns human readable price in the format provided (Y/X or X/Y). Best to use Y/X to align to how it is used in ?swap_across_ticks
 #' @export
 #'
 #' @examples
@@ -25,7 +25,8 @@
 #' tick = 267180
 #' # Check for next higher price. 1e10 decimal_adjustment.
 #' # Liquidity needs to be recalculated at 40.07743 ETH / BTC (the 92100-267180 position falls out of range!)
-#' find_recalculation_price(ptbl, P, price_up = TRUE, 1e10, yx = TRUE)
+#' rprice <- find_recalculation_price(ptbl, P, price_up = TRUE, 1e10, yx = TRUE)
+#' rprice
 
 find_recalculation_price <- function(ptbl, P, price_up = TRUE, decimal_adjustment = 1e0, yx = TRUE){
 

@@ -25,7 +25,7 @@ This included dataset is net_liquidity, so it should be filtered to the max bloc
 \item{yx}{Whether price is already in Token 1 / Token 0 format or inverted. ETH per USDC is how the ETH Mainnet 0.05\% pool works but is not friendly for human interpretation. Default is TRUE.}
 }
 \value{
-tbd
+Returns human readable price in the format provided (Y/X or X/Y). Best to use Y/X to align to how it is used in ?swap_across_ticks
 }
 \description{
 Helper function for identifying the next tick where liquidity must be recalculated (i.e., at least 1 position enters or exits being active).
@@ -43,5 +43,6 @@ P = 39.36252
 tick = 267180
 # Check for next higher price. 1e10 decimal_adjustment.
 # Liquidity needs to be recalculated at 40.07743 ETH / BTC (the 92100-267180 position falls out of range!)
-find_recalculation_price(ptbl, P, price_up = TRUE, 1e10, yx = TRUE)
+rprice <- find_recalculation_price(ptbl, P, price_up = TRUE, 1e10, yx = TRUE)
+rprice
 }

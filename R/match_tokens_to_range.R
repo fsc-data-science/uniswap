@@ -20,7 +20,7 @@
 #' pa = 0.05, # minimum price is 0.05 BTC / ETH (ETH is weaker than current)
 #' pb = 0.25, # maximum price is 0.25 BTC / ETH (ETH is stronger than current)
 #' yx = FALSE) # the unit of account used: BTC/ETH is NOT the pool's Token 1 / Token 0 price.
-#'Function will handle all inversions.
+#' # Function will handle all inversions.
 #'
 #' match_tokens_to_range(x = NULL, # how many wrapped bitcoin WBTC
 #' y = 12.549, # to match to 12.549 ETH

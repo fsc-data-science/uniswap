@@ -31,8 +31,8 @@ It takes human readable prices P, pa, pb, for simplicity, so do not use price_to
 \examples{
 # See: https://science.flipsidecrypto.xyz/uni_v3_explained/#Tracking_Liquidity
 
-x = as.bigz('1139289230675491064') # 1.13 LINK, token 0, 18 decimals
-y = as.bigz(0.005*1e18) # 0.005 MKR, token 1, 18 decimals
+x = gmp::as.bigz('1139289230675491064') # 1.13 LINK, token 0, 18 decimals
+y = gmp::as.bigz(0.005*1e18) # 0.005 MKR, token 1, 18 decimals
 
 # see sqrtpx96_to_price('7625888651129286871474510862') using Slot0 at time
 P = 0.009264495 #  This is MKR/LINK (Token 1 / Token 0, so we'll use yx = TRUE in get_liquidity)

@@ -23,7 +23,8 @@
 #' tick_to_price(260220, decimal_adjustment = 1e10, yx = TRUE)
 #'
 #'  # You can invert results as desired as equivalent to switching yx.
-#' tick_to_price(260220, decimal_adjustment = 1e10, yx = FALSE)^-1 == tick_to_price(260220, decimal_adjustment = 1e10, yx = TRUE)
+#' tick_to_price(260220, decimal_adjustment = 1e10, yx = FALSE)^-1 /
+#'  tick_to_price(260220, decimal_adjustment = 1e10, yx = TRUE) - 1 < 0.000001
 
 tick_to_price <- function(tick, decimal_adjustment = 1e0, yx = TRUE){
 

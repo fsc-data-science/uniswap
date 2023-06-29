@@ -1,7 +1,7 @@
 #' Price to SQRTPX96
 #'
-#' Uniswap stores prices as square roots in 64.96 (64 bits integer, 96 bit fractional)
-#' assume sqrt price is a rational and use gmp big integer.
+#'  Uniswap stores prices as square roots in 64.96 (64 bits integer, 96 bit fractional)
+#'  assume sqrt price is a rational and use gmp big integer.
 #'
 #' @param P price in human readable form (e.g., 0.05 BTC/ETH).
 #' @param invert Default FALSE. Uniswap uses Token 1 / Token 0. You must know which token is which at the pool level.
@@ -12,7 +12,6 @@
 #' Chinese Remainder Theorem as solidity uses fixed point math.
 #' @import gmp
 #' @export
-#'
 #' @examples
 #' # see the reverse function ?sqrtpx96_to_price
 #' # For Ethereum Mainnet ETH-USDC 0.05% v3 Pool example:
