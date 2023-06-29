@@ -31,10 +31,10 @@ See ?get_liquidity or read a pool contract's liquidity directly on etherscan to 
 \item{fee}{The pool fee, default 0.3\% (0.003). Generally one of: 0.0001, 0.0005, 0.003, 0.01}
 }
 \value{
-Swap functions return lists. For a token 0 -> token 1 swap a list of:
-\item{liquidity}{amount of liquidity in the pool after the trade (will always match L in swap_within_tick() this function does not auto-recalculate. See ?size_price_change_in_tick)}
-\item{dx}{ the amount of token 0 added (i.e. sold by user) to the pool (FEES separated)}
-\item{dy}{ the amount of token 1 removed (i.e. bought by user) from the pool}
+Swap functions return lists:
+\item{liquidity}{ amount of liquidity in the pool after the trade (will always match L in swap_within_tick() this function does not auto-recalculate liquidity. See ?swap_across_tick)}
+\item{dx}{ the amount of token 0 added to pool (sold by user, fees separated) or if negative bought by user (taken from pool).}
+\item{dy}{ the amount of token 1 bought by user (if negative) and taken from pool or if positive sold by user (added to pool, fees separated)).)}
 \item{price1}{ the initial sqrtpx96 price of the pool before the swap}
 \item{price2}{ the final sqrtpx96 price of the pool after the swap}
 \item{fee}{ the fee taken by the pool, in the unit of token added to the pool (input dx = returned dx + fee)}
@@ -49,20 +49,20 @@ This function assumes the amounts traded do not cause a recalculation of active 
 If you have access to the liquidity across positions in a pool (including those out of range that may become in-range during a swap)
 you should instead use ?swap_across_ticks.
 This function should be within tolerable precision loss for small swaps on deep pools if
-a positions table is not available.
+a positions table is not available even if liquidity would've been technically recalculated.
 }
 \examples{
-# Trading 0.000000030675491064 LINK for 0.0000000002833404 MKR on a real Optimism pool.
-# see ?get_liquidity
-L = '343255264548669212'
-# see ?price_to_sqrtpx96
-P = 0.009264495
-Px96 = price_to_sqrtpx96(P, invert = FALSE, decimal_adjustment = 1)
-swap_within_tick(L = L,
-sqrtpx96 = Px96,
-dx = 0.000000030675491064, # selling tiny amount of LINK
-dy = NULL, # how much MKR will be returned?
-decimal_x = 1e18, # LINK has 18 decimals
-decimal_y = 1e18, # MKR has 18 decimals
-fee = 0.003) # 0.3\% pool
+data(ethwbtc_trade_history)
+data(ethwbtc_net_liquidity)
+blockheight <- 16115539
+sqrtpx96 <- gmp::as.bigz("28920208462486575390334957222100992")
+# rough estimate that is within 0.01\\% is to take price from trade data tick.
+most_recent_trade_tick <- tail(ethwbtc_trade_history[ethwbtc_trade_history$block_number < blockheight, "tick"], 1)
+sqrtptx96_from_tick <- price_to_sqrtpx96(P = tick_to_price(most_recent_trade_tick, 1e10), invert = FALSE, 1e10)
+abs(as.numeric(sqrtptx96_from_tick/sqrtpx96)) - 1 < 0.00001 # very close together
+
+# Using liquidity value from the in block 16115539: '1785868753774080000'
+# knowing the swap is small enough to not cause a change in liquidity available (see ?swap_across_ticks)
+# matches row 131,165 of ethwbtc_trade_history (only trade in block 16115539) sale of 0.03 ETH, removes 0.00224477 BTC from pool.
+swap_within_tick(L = '1785868753774080000', sqrtpx96 = sqrtpx96, dx = NULL, dy = 0.03, decimal_x = 1e8, decimal_y = 1e18, fee = 0.003)
 }
