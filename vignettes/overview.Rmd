@@ -49,19 +49,24 @@ from ETHEREUM.UNISWAPV3.EZ_LP_ACTIONS
 WHERE pool_address = '0xcbcdf9626bc03e24f779434178a73a0b4bad62ed'
 AND block_number <= 17000000
 AND liquidity_adjusted > 0 
-
 ORDER BY block_number 
+), 
+
+block_aggregated AS (
+   select block_number,
+tick_lower, tick_upper,
+sum(liquidity_signed) as block_range_liq_sign
+from ethwbtc_003_lp_history
+ group by block_number, tick_lower, tick_upper
 )
 
-select 
-block_number,
-tick_lower, tick_upper,
-sum(liquidity_signed) OVER (
+select block_number, tick_lower, tick_upper,
+sum(block_range_liq_sign) OVER (
 partition by tick_lower, tick_upper ORDER BY block_number ASC 
 ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
 ) as net_adjusted_liquidity
-from ethwbtc_003_lp_history
-ORDER BY block_number ASC, tick_lower, tick_upper
+from block_aggregated
+ORDER BY block_number asc
 "
 }
 
