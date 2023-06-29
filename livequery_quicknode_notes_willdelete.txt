@@ -1,0 +1,6 @@
+Quicknode
+ getLogs receipts method
+  logs FILTER:
+    address (pool address): 0xCBCdF9626bC03E24f779434178A73a0B4bad62eD
+    topics (Swap): 0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67
+  PARSE data: amount0, amount1, sqrtpx96, liquidity, tick	 
