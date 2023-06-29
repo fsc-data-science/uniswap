@@ -23,6 +23,7 @@ by partitioning tick_lower-tick_upper and selecting the maximum block <= blockhe
 }
 \examples{
 data(ethwbtc_net_liquidity)
-liquidity_asof_block(ethwbtc_net_liquidity, 16000000)
-max(table(ethwbtc_net_liquidity$tick_lower, ethwbtc_net_liquidity$tick_upper)) == 1
+l1600 = liquidity_asof_block(ethwbtc_net_liquidity, 16000000)
+# all tick_lower-tick_upper combos aggregated as of block 16M
+max(table(l1600$tick_lower, l1600$tick_upper)) == 1
 }

@@ -24,6 +24,7 @@ Simple helper function for flagging liquidity positions as active or not active 
 }
 \examples{
 data("ethwbtc_net_liquidity")
-# note this would still need to be aggregated to row with max block for a given tick_lower-tick_upper combo (i.e. liquidity for range at a blockheight)
+# note this would still need to be aggregated to row with max block for a given tick_lower-tick_upper combo
+# see ?liquidity_asof_block
 check_positions(ethwbtc_net_liquidity, P = 0.10, decimal_adjustment = 1e10, yx = FALSE)
 }
