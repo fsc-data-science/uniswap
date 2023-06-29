@@ -27,6 +27,7 @@
 #' you should instead use ?swap_across_ticks.
 #' This function should be within tolerable precision loss for small swaps on deep pools if
 #' a positions table is not available even if liquidity would've been technically recalculated.
+#'
 #' @examples
 #' data(ethwbtc_trade_history)
 #' data(ethwbtc_net_liquidity)
@@ -39,8 +40,11 @@
 #'
 #' # Using liquidity value from the in block 16115539: '1785868753774080000'
 #' # knowing the swap is small enough to not cause a change in liquidity available (see ?swap_across_ticks)
-#' # matches row 131,165 of ethwbtc_trade_history (only trade in block 16115539) sale of 0.03 ETH, removes 0.00224477 BTC from pool.
-#' swap_within_tick(L = '1785868753774080000', sqrtpx96 = sqrtpx96, dx = NULL, dy = 0.03, decimal_x = 1e8, decimal_y = 1e18, fee = 0.003)
+#' # matches row 131,165 of ethwbtc_trade_history
+#' # (only trade in block 16115539) sale of 0.03 ETH,
+#' swp = swap_within_tick(L = '1785868753774080000', sqrtpx96 = sqrtpx96, dx = NULL, dy = 0.03, decimal_x = 1e8, decimal_y = 1e18, fee = 0.003)
+#' # should return within 0.01% of -0.00224477 BTC from pool
+#' swp$dx
 
 swap_within_tick <- function(L, sqrtpx96, dx = NULL, dy = NULL,
                              decimal_x = 1e18,
