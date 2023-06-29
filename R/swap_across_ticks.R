@@ -5,7 +5,7 @@
 #' as needed via ?find_recalculation_price while looping through ?swap_within_tick and ?check_positions to get the final result.
 #'
 #' @param ptbl Liquidity Positions table of the form tick_lower, tick_upper, liquidity. See ?ethwbtc_net_liquidity for an example.
-#' This included dataset is net_liquidity, so it should be filtered to the max blockheight for a given tick_lower-tick_upper.
+#' This included dataset is net_liquidity, so it should be filtered to the max blockheight for a given tick_lower-tick_upper. See ?liquidity_asof_block
 #' @param sqrtpx96 The Current price of the pool in Uniswap 64.96 square root price. Can be in gmp::as.bigz() or a "string". See ?price_to_sqrtpx96.
 #' @param fee_tbl A table of fees accumulated in the trade so far. Default NULL will construct a fresh table as this function calls itself recursively.
 #' @param trade_record A table of trade histories within the trade so far. Default NULL will construct a fresh table as this function calls itself recursively.
@@ -20,8 +20,10 @@
 #' \item{dy_in OR dx_in}{ the amount of token 1 (`dy_in`) or token 0 (`dx_in`) added to pool (i.e. sold by user), fees separated.}
 #' \item{dy_fee OR dx_fee}{ the amount of token 1 (`dy_fee`) or token 0 (`dx_fee`) taken to pay LPs to pool (add to `dy_in` or `dx_in` to get total sent by user).}
 #' \item{dx_out OR dy_out}{ the amount of token 0 (`dx_out`) or token 1 (`dy_out`) taken from pool (i.e. bought by user).}
-#' \item{fee_tbl}{Liquidity Positions table of the form tick_lower, tick_upper, liquidity, active and `yfee` or `xfee` distributing `dy_fee` or `dx_fee` across each liquidity position. sum(`fee_tbl[yfee]`) == `dy_fee` }
+#' \item{fee_tbl}{Liquidity Positions table of the form tick_lower, tick_upper, liquidity, active and `yfee` or `xfee` distributing `dy_fee` or `dx_fee` across each liquidity position. sum(fee_tbl[yfee]) == dy_fee}
+#'
 #' @import gmp
+#'
 #' @export
 #'
 #' @examples
@@ -41,7 +43,7 @@
 #' # This trade at Block 16119393 causes a recalculation of liquidity.
 #' #' returns within 0.01% (some error due to both precision and possibly missing data in net liquidity)
 #' swp = swap_across_ticks(l9393, sqrtpx96, NULL, NULL, NULL, 1140.00000000000, 1e8, 1e18, 0.003)
-#' # Should return -84.98101962 BTC removed from pool
+#' # Should return without 0.01% of -84.98101962 BTC removed from pool
 #' swp$dx_out
 #' # Another trade this time selling 14.795 BTC at block 16115408
 #' blockheight <- 16115408
@@ -56,9 +58,8 @@
 #'                        trade_record =  NULL,
 #'                         dx = 14.79530830,
 #'                         dy = NULL, 1e8, 1e18, 0.003)
-#' # should be close to real result -196.6075
+#' # should return within 0.01% of -196.6075
 #' swp2$dy_out # (ETH taken from pool by user)
-
 
 swap_across_ticks <- function(ptbl, sqrtpx96,
                               fee_tbl = NULL,
