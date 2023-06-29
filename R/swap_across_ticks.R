@@ -21,15 +21,19 @@
 #' @examples
 #' data(ethwbtc_trade_history)
 #' data(ethwbtc_net_liquidity)
-#' blockheight <- 16115539
-#' l539 <- liquidity_asof_block(ethwbtc_net_liquidity, blockheight = blockheight)
+#' # replicating a large trade that causes recalculation of liquidity
+#' blockheight <- 16119393
+#' # remember some of this liquidity will not be active at certain prices so sum(l9393$liquidity) is NOT useful w/o a price (see ?check_positions).
+#' l9393 <- liquidity_asof_block(ethwbtc_net_liquidity, blockheight = blockheight)
 #' # Taken from Quicknode as of blockheight
-#' sqrtpx96 <- gmp::as.bigz("28920208462486575390334957222100992")
+#' sqrtpx96 <- gmp::as.bigz("28949841196232757349076196841750528")
 #' # rough estimate that is within 0.01\% is to take price from trade data tick.
-#' most_recent_trade_tick <- tail(ethwbtc_trade_history[ethwbtc_trade_history$block_number <= blockheight, "tick"], 1)
+#' most_recent_trade_tick <- tail(ethwbtc_trade_history[ethwbtc_trade_history$block_number < blockheight, "tick"], 1)
 #' sqrtptx96_from_tick <- price_to_sqrtpx96(P = tick_to_price(most_recent_trade_tick, 1e10), invert = FALSE, 1e10)
 #' abs(as.numeric(sqrtptx96_from_tick/sqrtpx96)) - 1 < 0.00001 # very close together
-#' swap_across_ticks(l539, sqrtpx96, NULL, NULL, NULL, 0.03, 1e8, 1e18, 0.003)
+#'
+#' # This trade at Block 16119393 causes a recalculation of liquidity. Should return -84.98101962 BTC removed from pool.
+#' swap_across_ticks(l9393, sqrtpx96, NULL, NULL, NULL, 1140.00000000000, 1e8, 1e18, 0.003)
 
 swap_across_ticks <- function(ptbl, sqrtpx96,
                               fee_tbl = NULL,
