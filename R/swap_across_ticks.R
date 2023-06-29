@@ -14,7 +14,13 @@
 #' @param decimal_x The decimals used in token 0, e.g., 1e6 for USDC, 1e8 for WBTC.
 #' @param decimal_y The decimals used in token 1, e.g., 1e18 for WETH.
 #' @param fee The pool fee, default 0.3\% (0.003). Generally one of: 0.0001, 0.0005, 0.003, 0.01
-#' @return tbd
+#' @return Swap Across returns a `trade_record` list containing:
+#' \item{ptbl}{ Liquidity Positions table of the form tick_lower, tick_upper, liquidity, active (TRUE/FALSE on if position is active at new_price). }
+#' \item{new_price}{The `sqrtpx96` after the trade is complete.}
+#' \item{dy_in OR dx_in}{ the amount of token 1 (`dy_in`) or token 0 (`dx_in`) added to pool (i.e. sold by user), fees separated.}
+#' \item{dy_fee OR dx_fee}{ the amount of token 1 (`dy_fee`) or token 0 (`dx_fee`) taken to pay LPs to pool (add to `dy_in` or `dx_in` to get total sent by user).}
+#' \item{dx_out OR dy_out}{ the amount of token 0 (`dx_out`) or token 1 (`dy_out`) taken from pool (i.e. bought by user).}
+#' \item{fee_tbl}{Liquidity Positions table of the form tick_lower, tick_upper, liquidity, active and `yfee` or `xfee` distributing `dy_fee` or `dx_fee` across each liquidity position. sum(`fee_tbl[yfee]`) == `dy_fee` }
 #' @import gmp
 #' @export
 #'
@@ -32,8 +38,27 @@
 #' sqrtptx96_from_tick <- price_to_sqrtpx96(P = tick_to_price(most_recent_trade_tick, 1e10), invert = FALSE, 1e10)
 #' abs(as.numeric(sqrtptx96_from_tick/sqrtpx96)) - 1 < 0.00001 # very close together
 #'
-#' # This trade at Block 16119393 causes a recalculation of liquidity. Should return -84.98101962 BTC removed from pool.
-#' swap_across_ticks(l9393, sqrtpx96, NULL, NULL, NULL, 1140.00000000000, 1e8, 1e18, 0.003)
+#' # This trade at Block 16119393 causes a recalculation of liquidity.
+#' #' returns within 0.01% (some error due to both precision and possibly missing data in net liquidity)
+#' swp = swap_across_ticks(l9393, sqrtpx96, NULL, NULL, NULL, 1140.00000000000, 1e8, 1e18, 0.003)
+#' # Should return -84.98101962 BTC removed from pool
+#' swp$dx_out
+#' # Another trade this time selling 14.795 BTC at block 16115408
+#' blockheight <- 16115408
+#' l5408 <- liquidity_asof_block(ethwbtc_net_liquidity, blockheight = blockheight)
+#' # Taken from Quicknode but close to the tick after
+#' sqrtpx96 = gmp::as.bigz(2.8929142808894924e+34)
+#' # rough estimate that is within 0.01\% of tick from previous trade in block 16115368 (256173)
+#' sqrtpx96_from_tick <- price_to_sqrtpx96(P = tick_to_price(256173, 1e10, yx = TRUE), invert = FALSE, 1e10)
+#' abs(as.numeric(sqrtpx96_from_tick/sqrtpx96)) - 1 < 0.00001 # very close together
+#' swp2 = swap_across_ticks(ptbl = l5408, sqrtpx96 = sqrtpx96,
+#'                         fee_tbl = NULL,
+#'                        trade_record =  NULL,
+#'                         dx = 14.79530830,
+#'                         dy = NULL, 1e8, 1e18, 0.003)
+#' # should be close to real result -196.6075
+#' swp2$dy_out # (ETH taken from pool by user)
+
 
 swap_across_ticks <- function(ptbl, sqrtpx96,
                               fee_tbl = NULL,
@@ -43,7 +68,7 @@ swap_across_ticks <- function(ptbl, sqrtpx96,
                               decimal_x = 1e18,
                               decimal_y = 1e18,
                               fee = 0.003){
-browser()
+
   # compare decimals to get adjustment
   decimal_adjustment <- max( c(decimal_y/decimal_x, decimal_x/decimal_y) )
 
@@ -222,19 +247,19 @@ browser()
   } else if(is.null(dy)){
     amount <- dx
     price <- sqrtpx96_to_price(sqrtpx96 = sqrtpx96, invert = FALSE, decimal_adjustment = decimal_adjustment)
-    update_ptbl <- check_positions(ptbl, price)
+    update_ptbl <- check_positions(ptbl, price, decimal_adjustment = decimal_adjustment, yx = TRUE)
 
 
     # record fees separately
     # if it is blank assume this is a fresh swap and make the fee tbl
     if(is.null(fee_tbl)){
-      fee_tbl <-  update_ptbl[, c("position","liquidity", "active")]
+      fee_tbl <-  update_ptbl[, c("tick_lower", "tick_upper","liquidity", "active")]
       fee_tbl$xfee <- 0
 
       # otherwise refresh the active positions but retain any previous fee
     } else {
       xfee = fee_tbl$xfee
-      fee_tbl <-  update_ptbl[,c("position","liquidity", "active")]
+      fee_tbl <-  update_ptbl[,c("tick_lower", "tick_upper","liquidity", "active")]
       fee_tbl$xfee <- xfee
     }
 

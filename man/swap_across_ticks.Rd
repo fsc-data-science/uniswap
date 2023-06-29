@@ -37,7 +37,13 @@ This included dataset is net_liquidity, so it should be filtered to the max bloc
 \item{fee}{The pool fee, default 0.3\% (0.003). Generally one of: 0.0001, 0.0005, 0.003, 0.01}
 }
 \value{
-tbd
+Swap Across returns a `trade_record` list containing:
+\item{ptbl}{ Liquidity Positions table of the form tick_lower, tick_upper, liquidity, active (TRUE/FALSE on if position is active at new_price). }
+\item{new_price}{The `sqrtpx96` after the trade is complete.}
+\item{dy_in OR dx_in}{ the amount of token 1 (`dy_in`) or token 0 (`dx_in`) added to pool (i.e. sold by user), fees separated.}
+\item{dy_fee OR dx_fee}{ the amount of token 1 (`dy_fee`) or token 0 (`dx_fee`) taken to pay LPs to pool (add to `dy_in` or `dx_in` to get total sent by user).}
+\item{dx_out OR dy_out}{ the amount of token 0 (`dx_out`) or token 1 (`dy_out`) taken from pool (i.e. bought by user).}
+\item{fee_tbl}{Liquidity Positions table of the form tick_lower, tick_upper, liquidity, active and `yfee` or `xfee` distributing `dy_fee` or `dx_fee` across each liquidity position. sum(`fee_tbl[yfee]`) == `dy_fee` }
 }
 \description{
 This function loops through a trade given the swap amount and available liquidity (including inactive positions) to
@@ -45,5 +51,37 @@ calculate the amount received, resulting fees paid to each position, and the fin
 as needed via ?find_recalculation_price while looping through ?swap_within_tick and ?check_positions to get the final result.
 }
 \examples{
-"tbd"
+data(ethwbtc_trade_history)
+data(ethwbtc_net_liquidity)
+# replicating a large trade that causes recalculation of liquidity
+blockheight <- 16119393
+# remember some of this liquidity will not be active at certain prices so sum(l9393$liquidity) is NOT useful w/o a price (see ?check_positions).
+l9393 <- liquidity_asof_block(ethwbtc_net_liquidity, blockheight = blockheight)
+# Taken from Quicknode as of blockheight
+sqrtpx96 <- gmp::as.bigz("28949841196232757349076196841750528")
+# rough estimate that is within 0.01\\% is to take price from trade data tick.
+most_recent_trade_tick <- tail(ethwbtc_trade_history[ethwbtc_trade_history$block_number < blockheight, "tick"], 1)
+sqrtptx96_from_tick <- price_to_sqrtpx96(P = tick_to_price(most_recent_trade_tick, 1e10), invert = FALSE, 1e10)
+abs(as.numeric(sqrtptx96_from_tick/sqrtpx96)) - 1 < 0.00001 # very close together
+
+# This trade at Block 16119393 causes a recalculation of liquidity.
+#' returns within 0.01\% (some error due to both precision and possibly missing data in net liquidity)
+swp = swap_across_ticks(l9393, sqrtpx96, NULL, NULL, NULL, 1140.00000000000, 1e8, 1e18, 0.003)
+# Should return -84.98101962 BTC removed from pool
+swp$dx_out
+# Another trade this time selling 14.795 BTC at block 16115408
+blockheight <- 16115408
+l5408 <- liquidity_asof_block(ethwbtc_net_liquidity, blockheight = blockheight)
+# Taken from Quicknode but close to the tick after
+sqrtpx96 = gmp::as.bigz(2.8929142808894924e+34)
+# rough estimate that is within 0.01\\% of tick from previous trade in block 16115368 (256173)
+sqrtpx96_from_tick <- price_to_sqrtpx96(P = tick_to_price(256173, 1e10, yx = TRUE), invert = FALSE, 1e10)
+abs(as.numeric(sqrtpx96_from_tick/sqrtpx96)) - 1 < 0.00001 # very close together
+swp2 = swap_across_ticks(ptbl = l5408, sqrtpx96 = sqrtpx96,
+                        fee_tbl = NULL,
+                       trade_record =  NULL,
+                        dx = 14.79530830,
+                        dy = NULL, 1e8, 1e18, 0.003)
+# should be close to real result -196.6075
+swp2$dy_out # (ETH taken from pool by user)
 }
