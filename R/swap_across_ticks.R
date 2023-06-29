@@ -60,7 +60,7 @@ browser()
   if(is.null(dx)){
 
     amount <- dy
-    price <- sqrtpx96_to_price(sqrtpx96 = sqrtpx96, invert = FALSE, decimal_adjustment = decimal_adjustment )
+    price <- sqrtpx96_to_price(sqrtpx96 = sqrtpx96, invert = FALSE, decimal_adjustment = decimal_adjustment)
     update_ptbl <- check_positions(ptbl, price, decimal_adjustment = decimal_adjustment, yx = TRUE)
 
 
@@ -158,7 +158,7 @@ browser()
       # swap max y
       # track leftover
       swap = swap_within_tick(L = current_L,
-                              sqrtpx96 = price_to_sqrtpx96(price),
+                              sqrtpx96 = price_to_sqrtpx96(P = price, invert = FALSE, decimal_adjustment = decimal_adjustment),
                               dy = max_y,
                               decimal_x = decimal_x,
                               decimal_y = decimal_y,
@@ -221,7 +221,7 @@ browser()
     }
   } else if(is.null(dy)){
     amount <- dx
-    price <- sqrtpx96_to_price(sqrtpX96 = sqrtpx96)
+    price <- sqrtpx96_to_price(sqrtpx96 = sqrtpx96, invert = FALSE, decimal_adjustment = decimal_adjustment)
     update_ptbl <- check_positions(ptbl, price)
 
 
@@ -240,9 +240,11 @@ browser()
 
     # else we're selling dx, price is going down
     # (P = Y/X, more X is less P)
-    recalc_price <- find_recalculation_price(positions = update_ptbl,
-                                             current_price = price,
-                                             price_up = FALSE)
+    recalc_price <- find_recalculation_price(ptbl = update_ptbl,
+                                             P = price,
+                                             price_up = FALSE,
+                                             decimal_adjustment = decimal_adjustment,
+                                             yx = TRUE)
 
     # sum liquidity in active positions
     current_L <- sum(as.bigz(update_ptbl$liquidity[update_ptbl$active]))
@@ -251,16 +253,16 @@ browser()
     max_x <- size_price_change_in_tick(
       L = current_L,
       sqrtpx96 = sqrtpx96,
-      sqrtpx96_target = price_to_sqrtpx96(recalc_price),
+      sqrtpx96_target = price_to_sqrtpx96(recalc_price, invert = FALSE, decimal_adjustment = decimal_adjustment),
       dx = TRUE, # return dx to sell
-      decimal_adjustment = decimal_y,
+      decimal_scale = decimal_x, # scale is 1 token, adjustment is between 2 tokens.
       fee = fee)
 
     # if you can sell without recalculation; swap within tick
     if(max_x >= amount){
 
       swap = swap_within_tick(L = current_L,
-                              sqrtpx96 = price_to_sqrtpx96(price),
+                              sqrtpx96 = price_to_sqrtpx96(P = price, invert = FALSE, decimal_adjustment = decimal_adjustment),
                               dx = amount,
                               decimal_x = decimal_x,
                               decimal_y = decimal_y,
@@ -318,7 +320,7 @@ browser()
       # swap max x
       # track leftover
       swap = swap_within_tick(L = current_L,
-                              sqrtpx96 = price_to_sqrtpx96(price),
+                              sqrtpx96 = price_to_sqrtpx96(P = price, invert = FALSE, decimal_adjustment = decimal_adjustment),
                               dx = max_x,
                               decimal_x = decimal_x,
                               decimal_y = decimal_y,
