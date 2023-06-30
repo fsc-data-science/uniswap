@@ -13,6 +13,7 @@
 #'
 #' @return A list of amount_x, amount_y, current_price P, min_price pa, max_price pb (i.e., filling in the NULL).
 #' @export
+#'
 #' @examples
 #' price_all_tokens(x = 100, # given 100 BTC
 #' y = 1000, # and 1000 ETH
