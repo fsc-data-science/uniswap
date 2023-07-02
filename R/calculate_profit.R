@@ -1,0 +1,111 @@
+#' Calculate Profit
+#'
+#' This is a wrapper function to ?calc_strategy_value that tailored for optimization.
+#' It can create a hypothetical position and calculate its marginal liquidity to assess fees from trades
+#' using price, amount1, and budget (in amount1) to calculate amount0 and tick_lower combined with ?price_all_tokens to
+#' get the tick_upper. This enables 2-parameter optimization to get all relevant details of a position. Note,
+#' the optimal results may not fit all pools and tick spacings. Use ?get_closest_tick as needed to get near-optimal allowed
+#' ranges.
+#'
+#' @param params array of (amount of Token 1, price_lower). Using price instead of tick improves optimization.
+#'  Use ?tick_to_price to convert accordingly.
+#' @param budget max amount of Token 1 possible.
+#' @param p1 Exchange rate for Token 1 / Token 0 for calculating amount0 and liquidity at the beginning of a position.
+#' @param p2 The market price or final price for assessing the strategy value of a position after trades.
+#' @param trades Trades table with columns tick, amount0_adjusted, amount1_adjusted, liquidity, see ?ethwbtc_trade_history for an example.
+#' Negative (tokens bought) and Positive (tokens sold by user to pool) are expected in one of amount0_adjusted or amount1_adjusted.
+#' @param decimal_x The decimals used in token 0, e.g., 1e6 for USDC, 1e8 for WBTC.
+#' @param decimal_y The decimals used in token 1, e.g., 1e18 for WETH.
+#' @param fee The pool fee, default 0.3\% (0.003). Generally one of: 0.0001, 0.0005, 0.003, 0.01
+#' @param denominate Denominate the result of the strategy in Token 0, `0`, or Token 1, `1`. Default 1.
+#' @param in_optim Default FALSE returns all data from calculating a position's value. TRUE returns only -1*sv$value for iterating through optim() optimization.
+#'
+#' @return A list of all available information about a position after select trades, or -sv$value if in_optim = TRUE.
+#' @export
+#'
+#' @examples
+#'data("ethwbtc_trade_history")
+#' block_min = 16000000
+#' block_max = 16010000
+#' trades_16m10k <- ethwbtc_trade_history[ethwbtc_trade_history$block_number %in% (block_min:block_max), ]
+#'
+#'
+#' # Given initial & final prices
+#' # as the first and last prices in the relevant swaps
+#' p1 = tick_to_price(tick = head(trades_16m10k$tick, n = 1), decimal_adjustment = 1e10)
+#' p2 = tick_to_price(tick = tail(trades_16m10k$tick, n = 1), decimal_adjustment = 1e10)
+#'
+#' # Initial 100 ETH budget & tick_lower at 25% of current price (HUGE decrease)
+#' a1 = 100
+#' price_lower <- 0.25 * p1
+#' init_params <- c(50, 2*price_lower)
+#'
+#' # Define lower and upper bounds for ETH and tick_lower
+#' lower_bounds <- c(0.01, 0.5)
+#' upper_bounds <- c(99.9, 13.73664)
+#'
+#' # maximize profit using L-BFGS-B and select trades
+#' # denominate in ETH
+#' result <- optim(init_params,
+#'                 calculate_profit,
+#'                 method = "L-BFGS-B",
+#'                 lower = lower_bounds,
+#'                 upper = upper_bounds, budget = 100, p1 = p1, p2 = p2, trades = trades_16m10k,
+#'                 decimal_x = 1e8, decimal_y = 1e18, fee = 0.003, denominate = 1, in_optim = TRUE)
+#'
+#' # results
+#'  calculate_profit(params = result$par,
+#'                  budget = 100, p1 = p1, p2 = p2, trades = trades_16m10k,
+#'                  decimal_x = 1e8, decimal_y = 1e18, fee = 0.003, denominate = 1, in_optim = FALSE)
+
+calculate_profit <- function(params, budget = 100, p1, p2, trades,
+                             decimal_x = 1e18, decimal_y = 1e18,
+                             fee = 0.003, denominate = 1, in_optim = FALSE){
+
+  decimal_adjustment <- max( c(decimal_y/decimal_x, decimal_x/decimal_y) )
+
+  a1 = params[1]
+  tick_lower = get_closest_tick(desired_price = params[2], 1, decimal_adjustment = decimal_adjustment)$tick
+
+  a0 = (budget - a1)/p1
+
+  sqrtpx96_1 <- price_to_sqrtpx96(p1, decimal_adjustment = decimal_adjustment)
+  sqrtpx96_2 <- price_to_sqrtpx96(p2, decimal_adjustment = decimal_adjustment)
+
+  tick_upper = price_all_tokens(x = a0, y = a1,
+                                sqrtpx96 = sqrtpx96_1,
+                                decimal_x = decimal_x,
+                                decimal_y = decimal_y,
+                                tick_lower = tick_lower,
+                                tick_upper = NULL)$tick_upper
+
+  L = get_liquidity(x = a0, y = a1,
+                    sqrtpx96 = sqrtpx96_1,
+                    decimal_x = decimal_x,
+                    decimal_y = decimal_y,
+                    tick_lower = tick_lower,
+                    tick_upper = tick_upper)
+
+  sv <- calc_strategy_value(position_L = L,
+                            sqrtpx96 = sqrtpx96_2,
+                            tick_lower = tick_lower,
+                            tick_upper = tick_upper,
+                            decimal_x = decimal_x,
+                            decimal_y = decimal_y,
+                            trades = trades,
+                            fee = fee,
+                            denominate = denominate)
+
+  if(in_optim){
+    # * -1 because optim default is mininimization
+    return(-sv$value)
+  } else {
+    # out of optimization, return position details
+    return(
+      list(
+        position = list(x = a0, y = a1, tick_lower = tick_lower, tick_upper = tick_upper, liquidity = L),
+        strategy_value = sv
+      )
+    )
+  }
+}
