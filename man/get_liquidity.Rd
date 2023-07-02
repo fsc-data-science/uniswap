@@ -4,57 +4,47 @@
 \alias{get_liquidity}
 \title{Calculate Liquidity}
 \usage{
-get_liquidity(x, y, P, pa, pb, yx = TRUE)
+get_liquidity(
+  x,
+  y,
+  sqrtpx96,
+  decimal_x = 1e+18,
+  decimal_y = 1e+18,
+  tick_lower,
+  tick_upper
+)
 }
 \arguments{
-\item{x}{amount of token 0 in the exact form, i.e., adjust for decimals (e.g., x1e6 for USDC). Use gmp::as.bigz() as needed.}
+\item{x}{number of token 0, e.g., WBTC in ETH-WBTC 0.3 percent pool on ETH Mainnet.}
 
-\item{y}{amount of token 1, in the exact form,  i.e., adjust for decimals (e.g., x1e18 for ETH). Use gmp::as.bigz() as needed.}
+\item{y}{number of token 1, e.g., ETH in ETH-WBTC 0.3 percent pool on ETH Mainnet.}
 
-\item{P}{Price, ideally in token 1/token 0 format. If not, use yx = FALSE.}
+\item{sqrtpx96}{current price in uint160 format.See ?price_to_sqrtpx96 or read a pool contract's sqrtPriceX96 within it's slot0 on etherscan to get this value.}
 
-\item{pa}{Minimum price of a range, e.g., 0.05 in a 0.05 - 0.25 BTC/ETH position range.}
+\item{decimal_x}{The decimals used in token 0, e.g., 1e6 for USDC, 1e8 for WBTC.}
 
-\item{pb}{Maximum price of a range, e.g., 0.25 in a 0.05 - 0.25 BTC/ETH position range.}
+\item{decimal_y}{The decimals used in token 1, e.g., 1e18 for WETH.}
 
-\item{yx}{Default TRUE, assumes Price, P, is in Y/X (Token 1 / Token 0) format as defined in Uni v3 contracts.
-Use FALSE to invert P and swap+invert pa and pb.}
+\item{tick_lower}{The low tick in a liquidity position, see ?get_closest_tick to convert a price to a tick.}
+
+\item{tick_upper}{The upper tick in a liquidity position, see ?get_closest_tick to convert a price to a tick.}
 }
 \value{
-Returns a single Big Integer value
+Returns a single Big Integer value, the liquidity contributed by the position.
 }
 \description{
-This function calculates the liquidity provided by a range using its amount of tokens
-in their full decimal form (i.e., convert ETH to Wei by multiplying by 1e18 beforehand!).
-It takes human readable prices P, pa, pb, for simplicity, so do not use price_to_sqrtpx96() beforehand.
+This function calculates the liquidity provided by a range using its amount of tokens (adjusting for their decimals),
+the current price in sqrtpx96 format (see ?price_to_sqrtpx96), and the range (tick_lower, tick_upper)
 }
 \examples{
-# See: https://science.flipsidecrypto.xyz/uni_v3_explained/#Tracking_Liquidity
-
-x = gmp::as.bigz('1139289230675491064') # 1.13 LINK, token 0, 18 decimals
-y = gmp::as.bigz(0.005*1e18) # 0.005 MKR, token 1, 18 decimals
-
-# see sqrtpx96_to_price('7625888651129286871474510862') using Slot0 at time
-P = 0.009264495 #  This is MKR/LINK (Token 1 / Token 0, so we'll use yx = TRUE in get_liquidity)
-
-# It is required that min_tick < max_tick.
-min_tick <- -50100
-max_tick <- -39120
-
-# Such that, price might need to be inverted and min and max switched
-# to enforce min_tick < max_tick when calculating liquidity.
-# Here, because 1 MKR (Token 1) > 1 LINK (Token 0) ticks are negative and yx = FALSE is used to get pa and pb
-# pa, min price, is the lowest amount of MKR for 1 LINK (LINK is relatively low value compared to MKR)
-# pa, max price, is highest amount of MKR for 1 LINK (LINK is relatively high value compared MKR)
-# Recall at & below the minimum price the position is 100\% Token 0 (LINK), and
-# at & above the maximum price the position is 100\% Token 1 (MKR).
-
-pa = 0.006672574 # tick_to_price(-50100, 1e0, yx = FALSE)
-pb = 0.02000437  # tick_to_price(-39120, 1e0, yx = FALSE)
-# Uniswap value:    343255264548669212
-# Calculated value: 343255263830421644
-# Within 0.000001\% precision loss
-as.numeric(
- get_liquidity(x = x, y = y, P = P, pa = pa, pb = pb, yx = TRUE) / 343255264548669212
- ) - 1 < 0.0000001
+# See: https://etherscan.io/tx/0xc10cddba3df56e6fba4f9a88b132cc9d4440ff31bb0c4926dc9d9ca652faf376#eventlog
+# In Block 12,376,757: 1 BTC and 16.117809469 ETH were added to pool with a range of 257760 to 258900
+# the price at the time was 16.52921 ETH / BTC (sqrtpx96 = 32211102662183904786754519772954624)
+# it resulted in NFT Position 1005 with liquidity 1429022393248418
+# Within 0.0001\% (some precision loss expected)
+get_liquidity(x = 1, y = 16.117809469,
+sqrtpx96 = as.bigz('32211102662183904786754519772954624'),
+decimal_x = 1e8, decimal_y = 1e18,
+tick_lower = 257760,
+tick_upper = 258900) / gmp::as.bigz('1429022393248418') - 1 < 0.000001
 }

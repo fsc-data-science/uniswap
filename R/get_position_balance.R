@@ -1,16 +1,28 @@
 #' Title
 #'
-#' @param position_L
-#' @param sqrtpx96
-#' @param t_lower
-#' @param t_upper
-#' @param decimal_x
-#' @param decimal_y
+#' @param position_L The marginal liquidity provided by a position when created and the net of any increases or decreases
+#' in liquidity of that position afterwards. This is usable on `ethwbtc_net_liquidity` but it would be the balance of all positions in a range.
+#' @param sqrtpx96 current price in uint160 format.See ?price_to_sqrtpx96 or read a pool contract's sqrtPriceX96 within it's slot0 on etherscan to get this value.
+#' @param tick_lower The low tick in a liquidity position, see ?get_closest_tick to convert a price to a tick.
+#' @param tick_upper The upper tick in a liquidity position, see ?get_closest_tick to convert a price to a tick.
+#' @param decimal_x The decimals used in token 0, e.g., 1e6 for USDC, 1e8 for WBTC.
+#' @param decimal_y The decimals used in token 1, e.g., 1e18 for WETH.
 #'
-#' @return
+#' @return a list of `token0` balance and `token1` balance adjusted for the provided decimals for a given position at any price
 #' @export
 #'
 #' @examples
+#' # This is real world MKR/LINK position on Optimism. In the range of 0.00667 - 0.02 MKR/LINK
+#' given 343255264548669212 liquidity, at the price 0.00928 MKR/LINK price, there are
+#'  1.136317 LINK and 0.005027558 MKR in the position.
+#' tick_lower = -50100
+#' tick_upper = -39120
+#' L = as.bigz('343255264548669212')
+#' sqrtpx96 = as.bigz('7632249339194475209177795127')
+#' get_position_balance(position_L = L, sqrtpx96 = sqrtpx96,
+#' tick_lower = tick_lower, tick_upper = tick_upper,
+#' decimal_x = 1e18, decimal_y = 1e18)
+
 get_position_balance <- function(position_L, sqrtpx96, t_lower, t_upper, decimal_x = 1e18, decimal_y = 1e18){
 
   decimal_adjustment <- max( c(decimal_y/decimal_x, decimal_x/decimal_y) )
@@ -39,10 +51,5 @@ get_position_balance <- function(position_L, sqrtpx96, t_lower, t_upper, decimal
 
 }
 
-L = as.bigz('343255264548669212')
-tick_lower = -50100
-tick_upper = -39120
-sqrtpx96 = as.bigz('7632249339194475209177795127')
 
-get_position_balance(position_L = L, sqrtpx96 = sqrtpx96, t_lower = tick_lower, t_upper = tick_upper)
 
