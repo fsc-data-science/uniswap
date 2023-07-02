@@ -2,6 +2,7 @@
 
 export(calc_fees_from_trades)
 export(calc_strategy_value)
+export(calculate_profit)
 export(check_positions)
 export(find_recalculation_price)
 export(get_closest_tick)
