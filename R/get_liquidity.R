@@ -22,7 +22,7 @@
 #' # it resulted in NFT Position 1005 with liquidity 1429022393248418
 #' # Within 0.0001% (some precision loss expected)
 #' get_liquidity(x = 1, y = 16.117809469,
-#' sqrtpx96 = as.bigz('32211102662183904786754519772954624'),
+#' sqrtpx96 = gmp::as.bigz('32211102662183904786754519772954624'),
 #' decimal_x = 1e8, decimal_y = 1e18,
 #' tick_lower = 257760,
 #' tick_upper = 258900) / gmp::as.bigz('1429022393248418') - 1 < 0.000001

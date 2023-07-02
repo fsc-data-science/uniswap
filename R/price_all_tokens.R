@@ -6,84 +6,79 @@
 #'
 #' @param x number of token 0, e.g., WBTC in ETH-WBTC 0.3 percent pool on ETH Mainnet.
 #' @param y number of token 1, e.g., ETH in ETH-WBTC 0.3 percent pool on ETH Mainnet.
-#' @param P Current (human readable) price of the pool, see ?sqrtpx96_to_price if using slot0 from a pool contract.
-#' @param pa The minimum price in position, Must be NULL if pb is not NULL.
-#' @param pb The maximum price in position. Must be NULL if pa is not NULL.
-#' @param yx Whether current price P is in Token 1 / Token 0 (y/x) format already. Default TRUE.
+#' @param sqrtpx96 current price in uint160 format.See ?price_to_sqrtpx96 or read a pool contract's sqrtPriceX96 within it's slot0 on etherscan to get this value.
+#' @param decimal_x The decimals used in token 0, e.g., 1e6 for USDC, 1e8 for WBTC.
+#' @param decimal_y The decimals used in token 1, e.g., 1e18 for WETH.
+#' @param tick_lower The low tick in a liquidity position, see ?get_closest_tick to convert a price to a tick. Otherwise NULL if tick_upper is provided.
+#' @param tick_upper Default NULL. Otherwise the upper tick in a liquidity position, see ?get_closest_tick to convert a price to a tick.
 #'
-#' @return A list of amount_x, amount_y, current_price P, min_price pa, max_price pb (i.e., filling in the NULL).
+#' @return A list of `amount_x`, `amount_y`, `sqrtpx96`, `P`, `tick_lower`, `tick_upper`, `price_lower`, `price_upper`
+#' where tick_lower or tick_upper is replaced with its matched value and their corollary human readable prices are in Token 1 / Token 0 (y/x) format.
 #' @export
 #'
 #' @examples
-#' price_all_tokens(x = 100, # given 100 BTC
-#' y = 1000, # and 1000 ETH
-#' P = 0.1, # and a current price of 0.1 BTC/ETH
-#'  pa = NULL, # what minimum BTC/ETH price
-#'  pb = 0.25, # matches 0.25 BTC/ETH max price
-#'  yx = FALSE) # the unit of account used: BTC/ETH is NOT the pool's Token 1 / Token 0 price.
-#'  # Function will handle all inversions.
-#'
-#' price_all_tokens(x = 100, # given 100 BTC
-#' y = 1000, # 1000 ETH
-#' P = 10, # a current price of 10 ETH/BTC
-#'  pa = 4, # a minimum price of 4 ETH/BTC, note: this is 0.25^-1
-#'  pb = NULL, # what maximum ETH/BTC price uses all tokens.
-#'  yx = TRUE) # the unit of account used: ETH/BTC IS the pool's Token 1 / Token 0 price.
-price_all_tokens <- function(x, y, P, pa = NULL, pb = NULL, yx = TRUE){
+#' # Matches ?match_tokens_to_range example for ETH/WBTC pool.
+#' price_all_tokens(x = 1,
+#'                  y = 16.11781,
+#'                 sqrtpx96 = '32211102662183904786754519772954624',
+#'                 decimal_x = 1e8,
+#'                 decimal_y = 1e18,
+#'                 tick_lower = NULL,
+#'                 tick_upper = 258900)$tick_lower == 257760
 
-  if(is.null(pa) & is.null(pb)){
-    stop("min price pa OR max price pb must be provided")
+price_all_tokens <- function(x, y, sqrtpx96, decimal_x = 1e18, decimal_y = 1e18, tick_lower, tick_upper){
+
+  if(is.null(x) | is.null(y)){
+    stop("both of amount of token x and amount of token y must be provided")
   }
 
-  if(!is.null(pa) & !is.null(pb)){
-    stop("one of min price or max price should be unknown, NULL")
+  if(!is.null(tick_lower) & !is.null(tick_upper)){
+    stop("one of tick_lower or tick_upper should be unknown, NULL")
   }
+
+  decimal_adjustment <- max( c(decimal_y/decimal_x, decimal_x/decimal_y) )
+  P = sqrtpx96_to_price(sqrtpx96, decimal_adjustment = decimal_adjustment)
 
   r <- list(
     amount_x = x,
     amount_y = y,
-    current_price = P,
-    min_price = NULL,
-    max_price = NULL
+    sqrtpx96 = gmp::as.bigz(sqrtpx96),
+    P = P,
+    tick_lower = NULL,
+    tick_upper = NULL,
+    price_lower = NULL,
+    price_upper = NULL
   )
 
-  if(!is.null(pa)){
-    r$min_price <- pa
+  if(!is.null(tick_lower)){
+    r[["tick_lower"]] <- tick_lower
+    price_lower <- tick_to_price(tick = tick_lower, decimal_adjustment)
+    r[["price_lower"]] <- price_lower
   } else {
-    r$max_price <- pb
+    r[["tick_upper"]] <- tick_upper
+    price_upper <- tick_to_price(tick = tick_upper, decimal_adjustment)
+    r[["price_upper"]] <- price_upper
   }
 
-  # if min_price pa is given and prices are in Y/X format
-  if(!is.null(pa) & yx == TRUE){
-
+  # if tick_lower is given
+  if(!is.null(tick_lower)){
     f1 <- (y^2)/(x^2)
-    f2 <- sqrt(pa) - sqrt(P) + (y/(sqrt(P)*x))
+    f2 <- sqrt(price_lower) - sqrt(P) + (y/(sqrt(P)*x))
     pb <- f1 * (f2)^-2
 
-    r$max_price <- pb
+    r[["price_upper"]] <- pb
+    r[["tick_upper"]] <- get_closest_tick(pb, 1, decimal_adjustment)$tick
 
   }
 
-  # if min_price pa is NOT given and prices are in Y/X format
-  if(is.null(pa) & yx == TRUE){
-    f1 <- y / (sqrt(pb) * x)
+  # if tick_lower is NOT given
+  if(is.null(tick_lower)){
+    f1 <- y / (sqrt(price_upper) * x)
     f2 <- y / (sqrt(P) * x)
     pa <- (f1 + sqrt(P) - f2)^2
-    r$min_price <- pa
-  }
 
-  # if min_price pa is given and prices are in X/Y format
-  # use inverse and recursion
-  if(!is.null(pa) & yx == FALSE){
-    r$max_price <- price_all_tokens(x = x, y = y,
-                                    P = P^-1, pb = pa^-1, yx = TRUE)$min_price^-1
-  }
-
-  # if min_price is NOT given and prices are in X/Y format
-  # use inverse and recursion
-  if(is.null(pa) & yx == FALSE){
-    r$min_price <- price_all_tokens(x = x, y = y,
-                                    P = P^-1, pa = pb^-1, yx = TRUE)$max_price^-1
+    r[["price_lower"]] <- pa
+    r[["tick_lower"]] <- get_closest_tick(pa, 1, decimal_adjustment)$tick
   }
 
   return(r)

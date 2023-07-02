@@ -4,23 +4,34 @@
 \alias{price_all_tokens}
 \title{Price All Tokens}
 \usage{
-price_all_tokens(x, y, P, pa = NULL, pb = NULL, yx = TRUE)
+price_all_tokens(
+  x,
+  y,
+  sqrtpx96,
+  decimal_x = 1e+18,
+  decimal_y = 1e+18,
+  tick_lower,
+  tick_upper
+)
 }
 \arguments{
 \item{x}{number of token 0, e.g., WBTC in ETH-WBTC 0.3 percent pool on ETH Mainnet.}
 
 \item{y}{number of token 1, e.g., ETH in ETH-WBTC 0.3 percent pool on ETH Mainnet.}
 
-\item{P}{Current (human readable) price of the pool, see ?sqrtpx96_to_price if using slot0 from a pool contract.}
+\item{sqrtpx96}{current price in uint160 format.See ?price_to_sqrtpx96 or read a pool contract's sqrtPriceX96 within it's slot0 on etherscan to get this value.}
 
-\item{pa}{The minimum price in position, Must be NULL if pb is not NULL.}
+\item{decimal_x}{The decimals used in token 0, e.g., 1e6 for USDC, 1e8 for WBTC.}
 
-\item{pb}{The maximum price in position. Must be NULL if pa is not NULL.}
+\item{decimal_y}{The decimals used in token 1, e.g., 1e18 for WETH.}
 
-\item{yx}{Whether current price P is in Token 1 / Token 0 (y/x) format already. Default TRUE.}
+\item{tick_lower}{The low tick in a liquidity position, see ?get_closest_tick to convert a price to a tick. Otherwise NULL if tick_upper is provided.}
+
+\item{tick_upper}{Default NULL. Otherwise the upper tick in a liquidity position, see ?get_closest_tick to convert a price to a tick.}
 }
 \value{
-A list of amount_x, amount_y, current_price P, min_price pa, max_price pb (i.e., filling in the NULL).
+A list of `amount_x`, `amount_y`, `sqrtpx96`, `P`, `tick_lower`, `tick_upper`, `price_lower`, `price_upper`
+where tick_lower or tick_upper is replaced with its matched value and their corollary human readable prices are in Token 1 / Token 0 (y/x) format.
 }
 \description{
 Given an amount of tokens, a current price, and either the min or max price of a range; identify the corresponding
@@ -28,18 +39,12 @@ max or min price for the Uni v3 position to use all tokens x and y. NOTE: not al
 ?get_closest_tick for more info.
 }
 \examples{
-price_all_tokens(x = 100, # given 100 BTC
-y = 1000, # and 1000 ETH
-P = 0.1, # and a current price of 0.1 BTC/ETH
- pa = NULL, # what minimum BTC/ETH price
- pb = 0.25, # matches 0.25 BTC/ETH max price
- yx = FALSE) # the unit of account used: BTC/ETH is NOT the pool's Token 1 / Token 0 price.
- # Function will handle all inversions.
-
-price_all_tokens(x = 100, # given 100 BTC
-y = 1000, # 1000 ETH
-P = 10, # a current price of 10 ETH/BTC
- pa = 4, # a minimum price of 4 ETH/BTC, note: this is 0.25^-1
- pb = NULL, # what maximum ETH/BTC price uses all tokens.
- yx = TRUE) # the unit of account used: ETH/BTC IS the pool's Token 1 / Token 0 price.
+# Matches ?match_tokens_to_range example for ETH/WBTC pool.
+price_all_tokens(x = 1,
+                 y = 16.11781,
+                sqrtpx96 = '32211102662183904786754519772954624',
+                decimal_x = 1e8,
+                decimal_y = 1e18,
+                tick_lower = NULL,
+                tick_upper = 258900)$tick_lower == 257760
 }

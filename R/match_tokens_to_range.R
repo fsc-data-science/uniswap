@@ -11,7 +11,9 @@
 #' @param tick_lower The low tick in a liquidity position, see ?get_closest_tick to convert a price to a tick.
 #' @param tick_upper The upper tick in a liquidity position, see ?get_closest_tick to convert a price to a tick.
 #'
-#' @return A list of
+#' @return A list of `amount_x`, `amount_y`, `sqrtpx96`, `P`, `tick_lower`, `tick_upper`, `price_lower`, `price_upper`
+#' where x or y (the NULL value) is replaced with its matched value and all human readable prices are in Token 1 / Token 0 (y/x) format.
+#'
 #' @export
 #'
 #' @examples
@@ -19,10 +21,24 @@
 #' # In Block 12,376,757: 1 BTC and 16.117809469 ETH were added to pool with a range of 257760 to 258900
 #' # the price at the time was 16.52921 ETH / BTC (sqrtpx96 = 32211102662183904786754519772954624)
 #' # Let's match 1 BTC, the price, and the range to the ETH deposited (16.117809469)
+#' match_tokens_to_range(1, NULL, '32211102662183904786754519772954624', 1e8, 1e18, 257760, 258900)$amount_y
 #'
-match_tokens_to_range <- function(x, y, sqrtpx96, decimal_x = 1e18, decimal_y = 1e18, tick_lower, tick_upper){
+#' # Here 1.645127 LINK are matched to 0.0008946 MKR, and vice versa, at the same price.
+#' match_tokens_to_range(x = 1.645127, y = NULL,
+#'                       sqrtpx96 = gmp::as.bigz('6678324311438469345996439552'),
+#'                       decimal_x = 1e18,
+#'                       decimal_y = 1e18,
+#'                       tick_lower = -50100,
+#'                       tick_upper = -39120)$amount_y
 
-  decimal_adjustment <- max( c(decimal_y/decimal_x, decimal_x/decimal_y) )
+#' match_tokens_to_range(x = NULL, y =  0.0008946,
+#'                       sqrtpx96 = gmp::as.bigz('6678324311438469345996439552'),
+#'                     decimal_x = 1e18,
+#'                       decimal_y = 1e18,
+#'                       tick_lower = -50100,
+#'                       tick_upper = -39120)$amount_x
+
+match_tokens_to_range <- function(x, y, sqrtpx96, decimal_x = 1e18, decimal_y = 1e18, tick_lower, tick_upper){
 
   if(is.null(x) & is.null(y)){
     stop("amount of token x OR amount of token y must be provided")
@@ -32,15 +48,20 @@ match_tokens_to_range <- function(x, y, sqrtpx96, decimal_x = 1e18, decimal_y = 
     stop("one of amount x or amount y should be unknown, NULL")
   }
 
+  decimal_adjustment <- max( c(decimal_y/decimal_x, decimal_x/decimal_y) )
+  P = sqrtpx96_to_price(sqrtpx96, decimal_adjustment = decimal_adjustment)
+  price_lower = tick_to_price(tick = tick_lower, decimal_adjustment)
+  price_upper = tick_to_price(tick = tick_upper, decimal_adjustment)
+
   r <- list(
     amount_x = NULL,
     amount_y = NULL,
-    sqrtpx96 = sqrtpx96,
-      P = sqrtpx96_to_price(sqrtpx96, decimal_adjustment = decimal_adjustment),
+    sqrtpx96 = gmp::as.bigz(sqrtpx96),
+      P = P,
     tick_lower = tick_lower,
     tick_upper = tick_upper,
-    price_lower = get_closest_tick(tick_lower, 1, decimal_adjustment),
-    price_upper = get_closest_tick(tick_upper, 1, decimal_adjustment)
+    price_lower = price_lower,
+    price_upper = price_upper
   )
 
   if(!is.null(y)){
@@ -49,40 +70,16 @@ match_tokens_to_range <- function(x, y, sqrtpx96, decimal_x = 1e18, decimal_y = 
     r$amount_x <- x
   }
 
-  # if x is provided and prices are in X/Y format
-  if(!is.null(x) & yx == FALSE){
-
-    Lx = x * sqrt(P * pb) / ( sqrt(pb) - sqrt(P) )
-    y_ = Lx * ( sqrt(P) - sqrt(pa) )
-    r$amount_y = y_^-1
-
+  # if x is provided
+  # Use inverse of prices, and insane formula
+  if(!is.null(x)){
+  r$amount_y <- x * ( sqrt(price_lower^-1)-sqrt(P^-1) )/( (sqrt(P^-1)*sqrt(price_lower^-1)) * (sqrt(P^-1) - sqrt(price_upper^-1)) )
   }
 
-  # if y is provided and prices are in X/Y format
-  if(!is.null(y) & yx == FALSE){
-    Ly = y * sqrt(P * pb) / ( sqrt(pb) - sqrt(P) )
-    x_ = Ly * ( sqrt(P) - sqrt(pa) )
+  # if y is provided
+  if(!is.null(y)){
+      r$amount_x <- y*sqrt(P^-1)*sqrt(price_lower^-1)/(sqrt(price_lower^-1)-sqrt(P^-1)) * (sqrt(P^-1) - sqrt(price_upper^-1))
 
-    r$amount_x <- x_
-  }
-
-
-  # if x is provided and prices are in Y/X format
-  # use swap, inverse, and recursion
-  if(!is.null(x) & yx == TRUE){
-    r$amount_y <- match_tokens_to_range(x = x,
-                                        P = P^-1,
-                                        pa = pb^-1,
-                                        pb = pa^-1, yx = FALSE)$amount_y
-  }
-
-  # if y is provided and prices are in Y/X format
-  # use swap, inverse, and recursion
-  if(!is.null(y) & yx == TRUE){
-    r$amount_x <- match_tokens_to_range(y = y,
-                                        P = P^-1,
-                                        pa = pb^-1,
-                                        pb = pa^-1, yx = FALSE)$amount_x
   }
 
   return(r)
