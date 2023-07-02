@@ -40,13 +40,13 @@ get_position_balance <- function(position_L, sqrtpx96, tick_lower, tick_upper, d
   token0 = -1*size_price_change_in_tick(L = position_L, sqrtpx96 = sqrtpx96,
                                      sqrtpx96_target = price_upper,
                                      dx = TRUE,
-                                     decimal_scale = 1e18,
+                                     decimal_scale = decimal_x,
                                      fee = 0)
   token1 = -1*size_price_change_in_tick(L = position_L,
                                      sqrtpx96 = sqrtpx96,
                                      sqrtpx96_target = price_lower,
                                      dx = FALSE,
-                                     decimal_scale = 1e18,
+                                     decimal_scale = decimal_y,
                                      fee = 0)
 
   list(

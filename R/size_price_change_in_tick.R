@@ -47,7 +47,7 @@
 #' fee = 0.003)
 #'
 size_price_change_in_tick <- function(L, sqrtpx96, sqrtpx96_target, dx = TRUE,
-                                      decimal_scale = 1e0, fee = 0.003){
+                                      decimal_scale = 1e18, fee = 0.003){
 
   # price in *square root* 64.96 form
   L = gmp::as.bigz(L)
