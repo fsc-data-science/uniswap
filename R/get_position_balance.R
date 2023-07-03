@@ -37,17 +37,42 @@ get_position_balance <- function(position_L, sqrtpx96, tick_lower, tick_upper, d
   price_upper <- price_to_sqrtpx96(P = tick_to_price(tick_upper, decimal_adjustment = decimal_adjustment),
                                    decimal_adjustment = decimal_adjustment)
 
-  token0 = -1*size_price_change_in_tick(L = position_L, sqrtpx96 = sqrtpx96,
+  # if price is above of range you're all token 1
+  if(sqrtpx96 >= price_upper){
+    token0 = 0
+    token1 = size_price_change_in_tick(L = position_L,
+                                        sqrtpx96 = price_upper,
+                                        sqrtpx96_target = price_lower,
+                                        dx = FALSE,
+                                        decimal_scale = decimal_y,
+                                        fee = 0)
+
+  # if price is below range you're all token 0
+  } else if(sqrtpx96 <= price_lower){
+    token0 = size_price_change_in_tick(L = position_L, sqrtpx96 = price_lower,
+                                       sqrtpx96_target = price_upper,
+                                       dx = TRUE,
+                                       decimal_scale = decimal_x,
+                                       fee = 0)
+    token1 = 0
+
+    # else if you're position is in range
+  } else if(sqrtpx96 >= price_lower & sqrtpx96 <= price_upper ){
+  token0 = size_price_change_in_tick(L = position_L, sqrtpx96 = sqrtpx96,
                                      sqrtpx96_target = price_upper,
                                      dx = TRUE,
                                      decimal_scale = decimal_x,
                                      fee = 0)
-  token1 = -1*size_price_change_in_tick(L = position_L,
+
+  token1 = size_price_change_in_tick(L = position_L,
                                      sqrtpx96 = sqrtpx96,
                                      sqrtpx96_target = price_lower,
                                      dx = FALSE,
                                      decimal_scale = decimal_y,
                                      fee = 0)
+  } else {
+    stop("Double check tick_upper > tick_lower.")
+  }
 
   list(
     token0 = as.numeric(token0),
