@@ -35,29 +35,14 @@
 #' p1 = tick_to_price(tick = head(trades_16m10k$tick, n = 1), decimal_adjustment = 1e10)
 #' p2 = tick_to_price(tick = tail(trades_16m10k$tick, n = 1), decimal_adjustment = 1e10)
 #'
-#' # Initial 50 ETH as amount0 & price_lower at 25% of current price
-#' price_lower <- 0.25 * p1
-#' init_params <- c(50, 2*price_lower)
-#'
-#' # Define lower and upper bounds for ETH and price_lower
-#' # amount1 is 0.01 - 99.9
-#' # price_lower is 0.5 ETH/BTC - 0.999*P1
-#' lower_bounds <- c(0.01, 0.5)
-#' upper_bounds <- c(99.9, 0.999*p1)
-#'
-#' # maximize profit using L-BFGS-B and select trades
-#' # denominate in ETH
-#' result <- optim(init_params,
-#'                 calculate_profit,
-#'                 method = "L-BFGS-B",
-#'                 lower = lower_bounds,
-#'                 upper = upper_bounds, budget = 100, p1 = p1, p2 = p2, trades = trades_16m10k,
-#'                 decimal_x = 1e8, decimal_y = 1e18, fee = 0.003, denominate = 1, in_optim = TRUE)
-#'
-#' # results
-#' calculate_profit(params = result$par,
+#' # calculate the profit of a position with 91.17891 ETH, (100 ETH budget)
+#' # and a low price of 13.52 ETH/BTC
+#' # Returns above budget, 101.653 ETH value
+#' # but note the tick_lower and tick_upper do not align to allowable tick spacing except for 0.01\% pools
+#' calculate_profit(params = c(91.17891, 13.52415),
 #'                  budget = 100, p1 = p1, p2 = p2, trades = trades_16m10k,
 #'                  decimal_x = 1e8, decimal_y = 1e18, fee = 0.003, denominate = 1, in_optim = FALSE)
+#' # use round(initial_tick / tick_spacing)*tick_spacing to fix unallowed ticks
 
 calculate_profit <- function(params, budget = 100, p1, p2, trades,
                              decimal_x = 1e18, decimal_y = 1e18,
