@@ -6,14 +6,17 @@ trades_16m10k <- ethwbtc_trade_history[ethwbtc_trade_history$block_number %in% (
 # Given initial & final prices
 # as the first and last prices in the relevant swaps
 p1 = tick_to_price(tick = head(trades_16m10k$tick, n = 1), decimal_adjustment = 1e10)
+sqrtpx96_1 <- price_to_sqrtpx96(p1, F, 1e10)
 p2 = tick_to_price(tick = tail(trades_16m10k$tick, n = 1), decimal_adjustment = 1e10)
+sqrtpx96_2 <- price_to_sqrtpx96(p2, F, 1e10)
+
 
 # Budget of 100 ETH
 budget = 100
 
 # Use Naive Search to estimate initial parameters for optimization
-low_price <- (1:99)/100*p1
-amount_1 <- 1:budget
+low_price <- ((1:9)/10)*p1
+amount_1 <- budget*(1:9)/10
 
 grid <- expand.grid(amount_1, low_price)
 
@@ -30,14 +33,14 @@ for(i in 1:nrow(grid)){
   }, error = function(e){return(0)})
 }
 
-calculate_profit(params = c(grid[4212, 1], grid[4212, 2]),
-                budget = 100, p1 = p1, p2 = p2, trades = trades_16m10k,
-                decimal_x = 1e8, decimal_y = 1e18, fee = 0.003, denominate = 1, in_optim = FALSE)
+# use naive search min
+init_params <- as.numeric(grid[which.min(sv), 1:2])
 
 # Define lower and upper bounds for ETH and price_lower
 # amount1 is 0.01 - 99.9
-# price_lower is 0.5 ETH/BTC - 0.999*P1
-
+# price_lower is 1 ETH/BTC - 0.999*P1
+ lower_bounds <- c(0.01, 1)
+ upper_bounds <- c(99.9, 0.99*p1)
 
 # maximize profit using L-BFGS-B and select trades
 # denominate in ETH

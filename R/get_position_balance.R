@@ -41,16 +41,16 @@ get_position_balance <- function(position_L, sqrtpx96, tick_lower, tick_upper, d
   if(sqrtpx96 >= price_upper){
     token0 = 0
     token1 = size_price_change_in_tick(L = position_L,
-                                        sqrtpx96 = price_upper,
-                                        sqrtpx96_target = price_lower,
+                                        sqrtpx96 = price_lower,
+                                        sqrtpx96_target = price_upper,
                                         dx = FALSE,
                                         decimal_scale = decimal_y,
                                         fee = 0)
 
   # if price is below range you're all token 0
   } else if(sqrtpx96 <= price_lower){
-    token0 = size_price_change_in_tick(L = position_L, sqrtpx96 = price_lower,
-                                       sqrtpx96_target = price_upper,
+    token0 = size_price_change_in_tick(L = position_L, sqrtpx96 = price_upper,
+                                       sqrtpx96_target = price_lower,
                                        dx = TRUE,
                                        decimal_scale = decimal_x,
                                        fee = 0)
@@ -58,6 +58,7 @@ get_position_balance <- function(position_L, sqrtpx96, tick_lower, tick_upper, d
 
     # else if you're position is in range
   } else if(sqrtpx96 >= price_lower & sqrtpx96 <= price_upper ){
+
   token0 = size_price_change_in_tick(L = position_L, sqrtpx96 = sqrtpx96,
                                      sqrtpx96_target = price_upper,
                                      dx = TRUE,
@@ -75,8 +76,8 @@ get_position_balance <- function(position_L, sqrtpx96, tick_lower, tick_upper, d
   }
 
   list(
-    token0 = as.numeric(token0),
-    token1 = as.numeric(token1)
+    token0 = abs(as.numeric(token0)),
+    token1 = abs(as.numeric(token1))
   )
 
 }

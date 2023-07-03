@@ -79,8 +79,8 @@ calc_strategy_value <- function(position_L, sqrtpx96,
 value <- fees$amount0_fees + (fees$amount1_fees/P) +
       balances$token0 + (balances$token1/P)
   } else {
-value <- fees$amount0_fees*P + fees$amount1_fees +
-      balances$token0*P + balances$token1
+value <- (fees$amount0_fees*P) + fees$amount1_fees +
+      (balances$token0*P) + balances$token1
   }
 
   total = list(value = value,
