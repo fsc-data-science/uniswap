@@ -48,17 +48,18 @@ result <- optim(init_params,
                 calculate_profit,
                 method = "L-BFGS-B",
                 lower = lower_bounds,
-                upper = upper_bounds, budget = 100, p1 = p1, p2 = p2, trades = trades_16m10k,
-                decimal_x = 1e8, decimal_y = 1e18, fee = 0.003, denominate = 1, in_optim = TRUE)
+                upper = upper_bounds, budget = 100,
+                p1 = p1, p2 = p2,
+                trades = trades_16m10k,
+                decimal_x = 1e8, decimal_y = 1e18,
+                fee = 0.003, denominate = 1, in_optim = TRUE)
 
 if(result$convergence == 52){
   warning(result$message)
 }
 # results
 calculate_profit(params = result$par,
-                 budget = 100, p1 = p1, p2 = p2, trades = trades_16m10k,
-                 decimal_x = 1e8, decimal_y = 1e18, fee = 0.003, denominate = 1, in_optim = FALSE)
-
-
-
-
+                 budget = 100, p1 = p1, p2 = p2,
+                 trades = trades_16m10k,
+                 decimal_x = 1e8, decimal_y = 1e18,
+                 fee = 0.003, denominate = 1, in_optim = FALSE)
