@@ -33,7 +33,7 @@ for(i in 1:nrow(grid)){
   }, error = function(e){return(0)})
 }
 
-# use naive search min
+# initialize using naive search min
 init_params <- as.numeric(grid[which.min(sv), 1:2])
 
 # Define lower and upper bounds for ETH and price_lower
