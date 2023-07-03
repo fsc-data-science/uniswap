@@ -24,10 +24,10 @@
 #' @export
 #'
 #' @examples
-#'data("ethwbtc_trade_history")
-#' block_min = 16000000
-#' block_max = 16010000
-#' trades_16m10k <- ethwbtc_trade_history[ethwbtc_trade_history$block_number %in% (block_min:block_max), ]
+#' data("ethwbtc_trade_history")
+#'block_min = 16000000
+#'block_max = 16010000
+#'trades_16m10k <- ethwbtc_trade_history[ethwbtc_trade_history$block_number %in% (block_min:block_max), ]
 #'
 #'
 #' # Given initial & final prices
@@ -35,14 +35,15 @@
 #' p1 = tick_to_price(tick = head(trades_16m10k$tick, n = 1), decimal_adjustment = 1e10)
 #' p2 = tick_to_price(tick = tail(trades_16m10k$tick, n = 1), decimal_adjustment = 1e10)
 #'
-#' # Initial 100 ETH budget & tick_lower at 25% of current price (HUGE decrease)
-#' a1 = 100
+#' # Initial 50 ETH as amount0 & price_lower at 25% of current price
 #' price_lower <- 0.25 * p1
 #' init_params <- c(50, 2*price_lower)
 #'
-#' # Define lower and upper bounds for ETH and tick_lower
+#' # Define lower and upper bounds for ETH and price_lower
+#' # amount1 is 0.01 - 99.9
+#' # price_lower is 0.5 ETH/BTC - 0.999*P1
 #' lower_bounds <- c(0.01, 0.5)
-#' upper_bounds <- c(99.9, 13.73664)
+#' upper_bounds <- c(99.9, 0.999*p1)
 #'
 #' # maximize profit using L-BFGS-B and select trades
 #' # denominate in ETH
@@ -54,7 +55,7 @@
 #'                 decimal_x = 1e8, decimal_y = 1e18, fee = 0.003, denominate = 1, in_optim = TRUE)
 #'
 #' # results
-#'  calculate_profit(params = result$par,
+#' calculate_profit(params = result$par,
 #'                  budget = 100, p1 = p1, p2 = p2, trades = trades_16m10k,
 #'                  decimal_x = 1e8, decimal_y = 1e18, fee = 0.003, denominate = 1, in_optim = FALSE)
 
