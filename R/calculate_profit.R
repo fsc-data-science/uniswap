@@ -80,6 +80,13 @@ calculate_profit <- function(params, budget = 100, p1, p2, trades,
                                 tick_lower = tick_lower,
                                 tick_upper = NULL)$tick_upper
 
+  if(tick_upper < tick_lower & in_optim){
+    # large positive number to be ignored in optim
+    return(1e6)
+  } else if (tick_upper < tick_lower & !in_optim){
+    stop("Parameters caused a tick_upper > tick_lower error.")
+  }
+
   L = get_liquidity(x = a0, y = a1,
                     sqrtpx96 = sqrtpx96_1,
                     decimal_x = decimal_x,
