@@ -55,7 +55,8 @@ calc_strategy_value <- function(position_L, sqrtpx96,
   decimal_adjustment <- max( c(decimal_y/decimal_x, decimal_x/decimal_y) )
 
   fees <- calc_fees_from_trades(position_L = position_L,
-                                tick_lower = tick_lower, tick_upper = tick_upper,
+                                tick_lower = tick_lower,
+                                tick_upper = tick_upper,
                                 trades = trades,
                                 fee = fee)
 
