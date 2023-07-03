@@ -18,7 +18,7 @@ budget = 100
 low_price <- ((1:9)/10)*p1
 amount_1 <- budget*(1:9)/10
 
-grid <- expand.grid(amount_1, low_price)
+grid <- expand.grid(x = amount_1, y = low_price)
 
 sv = rep(0, nrow(grid))
 
@@ -52,9 +52,13 @@ result <- optim(init_params,
                 decimal_x = 1e8, decimal_y = 1e18, fee = 0.003, denominate = 1, in_optim = TRUE)
 
 if(result$convergence == 52){
-  stop(result$message)
+  warning(result$message)
 }
 # results
 calculate_profit(params = result$par,
                  budget = 100, p1 = p1, p2 = p2, trades = trades_16m10k,
                  decimal_x = 1e8, decimal_y = 1e18, fee = 0.003, denominate = 1, in_optim = FALSE)
+
+
+
+
