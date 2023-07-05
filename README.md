@@ -1,17 +1,13 @@
 ---
-title: "Overview Using WBTC/ETH"
-author: "Charliemarketplace"
-date: "`r Sys.Date()`"
-output:
-  html_document:
-    css: "styles.css"
-    includes:
-    code_folding: hide
-    toc: true
-    toc_float: true
-editor_options: 
-  chunk_output_type: console
+output: 
+  html_document: 
+    keep_md: yes
 ---
+# Beating Uniswap
+
+This R Package calculates the retroactive "perfect" liquidity position given a
+budget (e.g. 100 ETH) and a set of trades in a liquidity pool (e.g., all ETH-WBTC trades between Blocks 16,000,000 and 16,010,000 in the 0.3% fee tier). These trades 
+implicitly include starting and ending price details but can be overriden if desired.
 
 # Data  
 
@@ -26,8 +22,8 @@ This data was taken with the following query using Flipside Crypto Uniswap liqui
 Note: `Liquidity_Adjusted` is the raw liquidity divided by `1e13`. This doesn't affect calculations for 
 proportions of trade fees a position earns. But for sizing swaps it must match.
 
-```{r}
 
+```r
 {"
 /*
 ETH WBTC 0.3% fee Ethereum Mainnet 
@@ -69,8 +65,10 @@ from block_aggregated
 ORDER BY block_number asc
 "
 }
+```
 
-
+```
+## [1] "\n/*\nETH WBTC 0.3% fee Ethereum Mainnet \nUp to April 7, 2023 (Block 17M) \nLiquidity Actions -> Net liquidity as block N\nNOTE: liquidity adjusted is Liquidity / 1e13 to scale it down\n*/\n\nwith ethwbtc_003_lp_history AS (\nselect \nblock_number, \naction,\namount0_adjusted, token0_symbol,\namount1_adjusted, token1_symbol,\nliquidity_adjusted, \nIFF(action = 'DECREASE_LIQUIDITY', -1*liquidity_adjusted, liquidity_adjusted) as liquidity_signed,\ntick_lower, tick_upper\nfrom ETHEREUM.UNISWAPV3.EZ_LP_ACTIONS \nWHERE pool_address = '0xcbcdf9626bc03e24f779434178a73a0b4bad62ed'\nAND block_number <= 17000000\nAND liquidity_adjusted > 0 \nORDER BY block_number \n), \n\nblock_aggregated AS (\n   select block_number,\ntick_lower, tick_upper,\nsum(liquidity_signed) as block_range_liq_sign\nfrom ethwbtc_003_lp_history\n group by block_number, tick_lower, tick_upper\n)\n\nselect block_number, tick_lower, tick_upper,\nsum(block_range_liq_sign) OVER (\npartition by tick_lower, tick_upper ORDER BY block_number ASC \nROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW\n) as net_adjusted_liquidity\nfrom block_aggregated\nORDER BY block_number asc\n"
 ```
 
 This timestamp of data is accessible in the package via `data("ethwbtc_net_liquidity")`, for more info use 
@@ -87,7 +85,8 @@ This data was taken with the following query using Flipside Crypto Uniswap ez_sw
 Note: `Liquidity_Adjusted` is the raw liquidity divided by `1e13`. This doesn't affect calculations for 
 proportions of trade fees a position earns.
 
-```{r}
+
+```r
 {
   "
 /*
@@ -106,7 +105,10 @@ AND block_number <= 17000000
 ORDER BY BLOCK_NUMBER ASC, event_index ASC;
   "
 }
+```
 
+```
+## [1] "\n/*\nETH WBTC 0.3% fee Trades Ethereum Mainnet \nAll trades up to April 7, 2023 (Block 17M) \nNOTE: liquidity adjusted is Liquidity / 1e13 to scale it down\n*/\n\nselect block_number,  \nliquidity_adjusted,\ntick, amount0_adjusted, token0_symbol,\namount1_adjusted, token1_symbol\nfrom ethereum.uniswapv3.ez_swaps\nWHERE pool_address = '0xcbcdf9626bc03e24f779434178a73a0b4bad62ed'\nAND block_number <= 17000000 \nORDER BY BLOCK_NUMBER ASC, event_index ASC;\n  "
 ```
 
 This timestamp of data is accessible in the package via `data("ethwbtc_trade_history")`, for more info use 
@@ -125,7 +127,7 @@ indicating the concentration of liquidity between those assets (i.e., when price
 
 - This creates a standard accounting/business dilemma. The liquidity provider (LP) seeks to earn revenue (fees from market making) above their costs (price divergence between the winning and losing asset).
 
-- Going a level deeper, this is actually a constrained optimization problem. Liquidity of a position is an actual number calculable from the inputs `[token0, token1, current_price, tick_lower, tick_upper]` (see: ?get_liquidity). Given the same assets at the same price (here, current_price means the price when position is created) the more narrow the range (i.e., the closer tick_lower and tick_upper are around current_price) the higher the marginal liquidity is and thus the higher percent of trading fees the position gets (this is called capital efficiency. Same assets, but more revenue).
+- Going a level deeper, this is actually a constrained optimization problem. Liquidity of a position is an actual number calculable from the inputs `[token0, token1, current_price, tick_lower, tick_upper]` (see: `?get_liquidity`). Given the same assets at the same price (here, current_price means the price when position is created) the more narrow the range (i.e., the closer tick_lower and tick_upper are around current_price) the higher the marginal liquidity is and thus the higher percent of trading fees the position gets (this is called capital efficiency. Same assets, but more revenue).
 
 - But when prices fall out of the range, the position is both getting *no* fees for those trades and is taking on all the price divergence risk.
 
@@ -135,4 +137,23 @@ The goal of this package is to calculate optimal ranges in hindsight for a given
 
 # Example Methodology 
 
+`naive_search.R` breaks down an example optimization on the ETH-WBTC pool. 
+
+Given:
+
+- 100 ETH 
+
+- 169 trades between Blocks 16,000,000 - 16,010,000
+
+- A starting price (current_price) of the first trade's tick & ending price of the last trade's tick
+
+- Generate 81 potential `[token1, tick_lower]` pairs under the constraints that token1 < budget and tick_lower < current_price. 
+
+- Identify the most profitable `[token0, token1, tick_lower, tick_upper]` combination of the 81 initial options. Where profitable is determined by having an end value (fees + balance after price divergence) - budget (i.e., everything denominated in ETH at the ending price).
+
+- Use this as the initial parameters of a formal continuous optimization using L-BFGS-B (a constrained optimization algorithm) to find the actual most profitable position (across 100,000s of potential options).
+
+The result here may not follow pool specific requirements. For example,the 0.3% fee tier requires tick_spacing of at least 60, whereas the optimal is calculated at a tick_spacing of 1 (see: `?get_closest_tick` for more details) which is only the tick_spacing of 0.01% fee tiers. 
+
+Nonetheless, the difference in calculated liquidity and fees will generally be minimal - correction for fee ticks simply withholds some assets from the pool (i.e., not using the entire budget) which can be accounted for as revenue (priced at end_price of course).
 

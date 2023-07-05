@@ -1,17 +1,13 @@
 ---
-title: "Overview Using WBTC/ETH"
-author: "Charliemarketplace"
-date: "`r Sys.Date()`"
-output:
-  html_document:
-    css: "styles.css"
-    includes:
-    code_folding: hide
-    toc: true
-    toc_float: true
-editor_options: 
-  chunk_output_type: console
+output: 
+  html_document: 
+    keep_md: yes
 ---
+# Beating Uniswap
+
+This R Package calculates the retroactive "perfect" liquidity position given a
+budget (e.g. 100 ETH) and a set of trades in a liquidity pool (e.g., all ETH-WBTC trades between Blocks 16,000,000 and 16,010,000 in the 0.3% fee tier). These trades 
+implicitly include starting and ending price details but can be overriden if desired.
 
 # Data  
 
@@ -125,7 +121,7 @@ indicating the concentration of liquidity between those assets (i.e., when price
 
 - This creates a standard accounting/business dilemma. The liquidity provider (LP) seeks to earn revenue (fees from market making) above their costs (price divergence between the winning and losing asset).
 
-- Going a level deeper, this is actually a constrained optimization problem. Liquidity of a position is an actual number calculable from the inputs `[token0, token1, current_price, tick_lower, tick_upper]` (see: ?get_liquidity). Given the same assets at the same price (here, current_price means the price when position is created) the more narrow the range (i.e., the closer tick_lower and tick_upper are around current_price) the higher the marginal liquidity is and thus the higher percent of trading fees the position gets (this is called capital efficiency. Same assets, but more revenue).
+- Going a level deeper, this is actually a constrained optimization problem. Liquidity of a position is an actual number calculable from the inputs `[token0, token1, current_price, tick_lower, tick_upper]` (see: `?get_liquidity`). Given the same assets at the same price (here, current_price means the price when position is created) the more narrow the range (i.e., the closer tick_lower and tick_upper are around current_price) the higher the marginal liquidity is and thus the higher percent of trading fees the position gets (this is called capital efficiency. Same assets, but more revenue).
 
 - But when prices fall out of the range, the position is both getting *no* fees for those trades and is taking on all the price divergence risk.
 
@@ -135,4 +131,23 @@ The goal of this package is to calculate optimal ranges in hindsight for a given
 
 # Example Methodology 
 
+`naive_search.R` breaks down an example optimization on the ETH-WBTC pool. 
+
+Given:
+
+- 100 ETH 
+
+- 169 trades between Blocks 16,000,000 - 16,010,000
+
+- A starting price (current_price) of the first trade's tick & ending price of the last trade's tick
+
+- Generate 81 potential `[token1, tick_lower]` pairs under the constraints that token1 < budget and tick_lower < current_price. 
+
+- Identify the most profitable `[token0, token1, tick_lower, tick_upper]` combination of the 81 initial options. Where profitable is determined by having an end value (fees + balance after price divergence) - budget (i.e., everything denominated in ETH at the ending price).
+
+- Use this as the initial parameters of a formal continuous optimization using L-BFGS-B (a constrained optimization algorithm) to find the actual most profitable position (across 100,000s of potential options).
+
+The result here may not follow pool specific requirements. For example,the 0.3% fee tier requires tick_spacing of at least 60, whereas the optimal is calculated at a tick_spacing of 1 (see: `?get_closest_tick` for more details) which is only the tick_spacing of 0.01% fee tiers. 
+
+Nonetheless, the difference in calculated liquidity and fees will generally be minimal - correction for fee ticks simply withholds some assets from the pool (i.e., not using the entire budget) which can be accounted for as revenue (priced at end_price of course).
 
