@@ -1,0 +1,201 @@
+---
+title: "Beating Uniswap"
+author: "charliemarketplace // Flipside Crypto"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    css: "styles.css"
+    includes:
+    code_folding: hide
+    toc: true
+    toc_float: true
+editor_options: 
+  chunk_output_type: console
+---
+
+# Abstract
+
+Uniswap v3 allows for concentrated liquidity in automatic market making. 
+Given a budget constraint, e.g., 100 ETH, a period of time, e.g., 10,000 blocks, 
+and the set of known trades within a specific pool, e.g., ETH-WBTC 0.3% pool on 
+Ethereum mainnet, it is possible to calculate the profit maximizing range
+for a set of trades using common optimization methods such as bounded L-BFGS-B
+to enforce constraints such as the budget and the tick_lower.
+
+For example (detailed in the vignette of the corresponding uniswap R package),
+there were 169 trades in the ETH-BTC 0.3% pool on Ethereum Mainnet between 
+blocks 16,000,000 and 16,010,000. Starting with 100 ETH of total value, depositing 
+91 ETH and 0.655 BTC in the 13.529 - 13.757 ETH/BTC range generates 
+32391087272403693 Liquidity. 
+
+At block 16,010,000 the position becomes 80.688 ETH and 1.398 BTC. It accumulates
+1.530 ETH and 0.0151 BTC in trading fees. The total value of fees and the position, using the price *at* block 16,010,000 (13.71331 ETH / BTC) results in 101.60 ETH, 
+a 1.6% gain in 33 hours (400% APY).
+
+The goal of this paper is to model these perfect ranges over both defined and randomized intervals to identify if there is a simple but profitable auto-regressive strategy available for highly correlated pools. More advanced models such as LSTM or RNNs are not analyzed here.
+
+# Methodology 
+
+A detailed guide/presentation is available in the repo as `Beating_Uniswap.pdf`, here is a shortened summary.
+
+- A liquidity position is comprised of a balance of assets `[token0, token1]` 
+added to a liquidity pool at a `current_price` with a `[tick_lower, tick_upper]` 
+indicating the concentration of liquidity between those assets (i.e., when prices are below tick_lower or above tick_upper, the position is 100% in the lower valued asset).
+
+- This means providing liquidity is the act of selling winners (rising assets) to buy losers (automatically market making for traders) and taking a fee for doing so.
+
+- This creates a standard accounting/business dilemma. The liquidity provider (LP) seeks to earn revenue (fees from market making) above their costs (price divergence between the winning and losing asset).
+
+- Going a level deeper, this is actually a constrained optimization problem. Liquidity of a position is an actual number calculable from the inputs `[token0, token1, current_price, tick_lower, tick_upper]` (see: ?get_liquidity in the package). Given the same assets at the same price (here, current_price means the price when position is created) the more narrow the range (i.e., the closer tick_lower and tick_upper are around current_price) the higher the marginal liquidity is and thus the higher percent of trading fees the position gets (this is called capital efficiency. Same assets, but more revenue).
+
+- But when prices fall out of the range, the position is both getting *no* fees for those trades and is taking on all the price divergence risk.
+
+- Thus, given a `budget` (e.g., 100 ETH) at a starting point (e.g., Block 16M) and the exact series of trades that occur between the starting point and a user defined end point (e.g., Block 16,010,000), it is possible to calculate what *would have been* the absolute best asset breakdown and range for a given target outcome (e.g., growing from 100 ETH to >100 ETH). In some cases the optimal may be to not participate in market making during the time period at all (price divergence was significantly more than fees). In other cases the optimal may be an extremely narrow (capital efficient) range because price divergence (cost) was minimal so fees (revenue) should be maximized.
+
+# Framework
+
+161,984 trades occur in the ETH-WBTC 0.3% pool from inception (Block 12,369,886)
+to block 17,000,000.
+
+Starting at 12,400,000 for simplicity (early pool history had low liquidity) 
+there are 161,311 trades.
+
+Breaking this into 460 chunks of 10,000 blocks each we can calculate the optimal 
+range for each chunk given a 100 ETH starting value and taking the initial tick 
+of the trade as the current price and tick of the last trade as the final price.
+
+```{r}
+data("ethwbtc_trade_history")
+trades_124_170 <- ethwbtc_trade_history[ethwbtc_trade_history$block_number >= 12400000, ]
+
+breaks <- seq(12400000, 17000000, by = 10000)
+
+trade_breaks <- list()
+for(i in 1:(length(breaks)-1)){
+  trade_breaks[[i]] <- trades_124_170[trades_124_170$block_number >= breaks[i] & 
+                                    trades_124_170$block_number < (breaks[i]+10000),
+                                      ]
+}
+
+```
+
+For each chunk we do a brute force search for a maximum strategy value 
+using an expanded grid of (0.1 - 0.9) * budget as the initial amount1 and 
+(0.1 - 0.9) * current_price as the initial tick_lower. I.e., we test 81 potential 
+values to identify an initial parameter to then apply optimization.
+
+```{r}
+range_info <- list()
+budget = 100 # 100 ETH
+
+for(i in 1:460){
+   
+  # 1e10 decimal is b/c WBTC is 8 decimals and WETH is 18
+  p1 <- tick_to_price(trade_breaks[[i]]$tick[1],decimal_adjustment =  1e10)
+  p2 <- tick_to_price(tail(trade_breaks[[i]]$tick, 1),decimal_adjustment =  1e10)
+  
+ low_price <- ((1:9)/10)*p1
+ amount_1 <- budget*(1:9)/10
+
+grid <- expand.grid(x = amount_1, y = low_price)
+
+sv = rep(0, nrow(grid))
+
+for(j in 1:nrow(grid)){
+  sv[j] <- tryCatch({
+    calculate_profit(
+      params = c(grid[j,1], grid[j,2]),
+      budget = 100, p1 = p1, p2 = p2, trades = trade_breaks[[i]],
+      decimal_x = 1e8, decimal_y = 1e18, fee = 0.003,
+      denominate = 1,
+      in_optim = TRUE)
+  }, error = function(e){return(0)})
+}
+
+# initialize using naive search min
+init_params <- as.numeric(grid[which.min(sv), 1:2])
+
+# lower_bounds(amount1 = 0.01 ETH, p1 = 1 ETH/BTC)
+# upper_bounds(amount1 = 99.9 ETH, p1 = 0.99 * current price)
+lower_bounds <- c(0.01, 1)
+upper_bounds <- c(99.9, 0.99*p1)
+
+# in_optim = TRUE provides *only* -1*strategy value for optimization
+# (-1 b/c algorithm looks for minimums and we want maximum)
+
+result <- optim(init_params,
+                calculate_profit,
+                method = "L-BFGS-B",
+                lower = lower_bounds,
+                upper = upper_bounds, budget = 100,
+                p1 = p1, p2 = p2,
+                trades = trade_breaks[[i]],
+                decimal_x = 1e8, decimal_y = 1e18,
+                fee = 0.003, denominate = 1, in_optim = TRUE)
+
+ # in_optim = FALSE provides full audit of calculation 
+  profit = calculate_profit(params = result$par,
+                 budget = 100, p1 = p1, p2 = p2,
+                 trades = trade_breaks[[i]],
+                 decimal_x = 1e8, decimal_y = 1e18,
+                 fee = 0.003, denominate = 1, in_optim = FALSE)
+  
+range_info[[i]] <- list(
+  p1 = p1, 
+  p2 = p2,
+  init_params = init_params,
+  result_par = result$par,
+  result_warn = result$message,
+  position_details = profit$position,
+  strategy_details = profit$strategy_value
+)
+
+}
+
+```
+
+# AR(1) Model
+
+```{r}
+
+ar1_info <- list()
+ar1_info[[1]] <- NULL
+
+for(i in 2:460){
+  ar1_profit = calculate_profit(params = range_info[[(i-1)]]$init_params,
+                              budget = 100,
+                              p1 = range_info[[i]]$p1, 
+                              p2 = range_info[[i]]$p2,
+                 trades = trade_breaks[[i]],
+                 decimal_x = 1e8, decimal_y = 1e18,
+                 fee = 0.003, denominate = 1, in_optim = FALSE)
+
+ar1_info[[i]] <- list(
+  p1 = range_info[[i]]$p1, 
+  p2 = range_info[[i]]$p2,
+  init_params = range_info[[i-1]]$init_params,
+  position_details = ar1_profit$position,
+  strategy_details = ar1_profit$strategy_value
+)
+}
+
+```
+
+Using a hilariously basic model where the optimal range parameters [amount1, tick_lower] for 1 break is simply passed forward to the new [current_price, trades] of the next break to identify forecastable profitability.
+
+```{r}
+
+perfect_netprofit_eth <- unlist(lapply(range_info, FUN = function(x){
+    x$strategy_details$value - 100
+}))
+
+summary(perfect_netprofit_eth)
+
+ar1_netprofit_eth <- unlist(lapply(ar1_info, FUN = function(x){
+  x$strategy_details$value - 100
+}))
+
+summary(ar1_netprofit_eth)
+```
+
+
