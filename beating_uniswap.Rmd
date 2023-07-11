@@ -88,8 +88,8 @@ values to identify an initial parameter to then apply optimization.
 range_info <- list()
 budget = 100 # 100 ETH
 
-for(i in 1:460){
-   
+range_info <- lapply(X = 1:460, FUN = function(i){
+
   # 1e10 decimal is b/c WBTC is 8 decimals and WETH is 18
   p1 <- tick_to_price(trade_breaks[[i]]$tick[1],decimal_adjustment =  1e10)
   p2 <- tick_to_price(tail(trade_breaks[[i]]$tick, 1),decimal_adjustment =  1e10)
@@ -99,10 +99,8 @@ for(i in 1:460){
 
 grid <- expand.grid(x = amount_1, y = low_price)
 
-sv = rep(0, nrow(grid))
-
-for(j in 1:nrow(grid)){
-  sv[j] <- tryCatch({
+sv <- lapply(1:nrow(grid), function(j){
+tryCatch({
     calculate_profit(
       params = c(grid[j,1], grid[j,2]),
       budget = 100, p1 = p1, p2 = p2, trades = trade_breaks[[i]],
@@ -110,7 +108,9 @@ for(j in 1:nrow(grid)){
       denominate = 1,
       in_optim = TRUE)
   }, error = function(e){return(0)})
-}
+})
+
+sv <- unlist(sv)
 
 # initialize using naive search min
 init_params <- as.numeric(grid[which.min(sv), 1:2])
@@ -140,29 +140,57 @@ result <- optim(init_params,
                  decimal_x = 1e8, decimal_y = 1e18,
                  fee = 0.003, denominate = 1, in_optim = FALSE)
   
-range_info[[i]] <- list(
-  p1 = p1, 
-  p2 = p2,
-  init_params = init_params,
-  result_par = result$par,
-  result_warn = result$message,
-  position_details = profit$position,
-  strategy_details = profit$strategy_value
-)
-
-}
+  return(
+    list(
+      p1 = p1, 
+      p2 = p2,
+      init_params = init_params,
+      result_par = result$par,
+      result_warn = result$message,
+      position_details = profit$position,
+      strategy_details = profit$strategy_value
+    )
+  )
+  
+})
 
 ```
 
 # AR(1) Model
 
+Given a `perfect position` for set of 10,000 blocks (33 hours), a simple Autoregressive-1 model would re-use the parameters of the perfect position for the next set, i.e., making the assumption
+that today will be similar to yesterday.
+
+But, because our parameters are `[amount1, tick_lower]` and the price can change 
+(e.g., the price can fall below the previous perfect range's `tick_lower`) some parameters 
+may no longer be acceptable. If yesterday the price went from 13 to 12 ETH/BTC. And the optimal
+range was 12.5 - 13.5 ETH/BTC. You cannot re-use 12.5 as the `tick_lower` because it is above 
+the current price (12 ETH/BTC).
+
+So an augmentation is applied to the AR(1) model where the `tick_lower` goes through a test: 
+
+- If tick_lower from the perfect position < current price; re-use tick_lower
+- Otherwise make the tick lower the same percent of the current price as the tick_lower from the perfect position was from the previous beginning price.
+
+In the example case, the range was 12.5 - 13.5 ETH/BTC. We cannot use 12.5 because the 
+current price is 12. So instead we use the fraction 12.5/ 13 (tick_lower / yesterday's initial price) which is 0.961, and set our tick_lower to that ratio of th current price, 0.961 * 12 = 11.538
+
+If 
+
+
 ```{r}
 
 ar1_info <- list()
-ar1_info[[1]] <- NULL
 
-for(i in 2:460){
-  ar1_profit = calculate_profit(params = range_info[[(i-1)]]$init_params,
+ar1_info <- lapply(2:460, function(i){
+  
+  params <- range_info[[(i-1)]]$result_par
+  
+  if(params[2] >= range_info[[i]]$p1){
+  params[2] <- range_info[[i]]$p1 * (params[2] / range_info[[i-1]]$p1) 
+  }
+  
+  ar1_profit = calculate_profit(params = params,
                               budget = 100,
                               p1 = range_info[[i]]$p1, 
                               p2 = range_info[[i]]$p2,
@@ -170,18 +198,23 @@ for(i in 2:460){
                  decimal_x = 1e8, decimal_y = 1e18,
                  fee = 0.003, denominate = 1, in_optim = FALSE)
 
-ar1_info[[i]] <- list(
-  p1 = range_info[[i]]$p1, 
-  p2 = range_info[[i]]$p2,
-  init_params = range_info[[i-1]]$init_params,
-  position_details = ar1_profit$position,
-  strategy_details = ar1_profit$strategy_value
-)
-}
+  return(
+    list(
+      p1 = range_info[[i]]$p1, 
+      p2 = range_info[[i]]$p2,
+      used_params = params,
+      position_details = ar1_profit$position,
+      strategy_details = ar1_profit$strategy_value
+    )
+  )
+})
+
+# shift breaks forward
+ar1_info <- c(list(NULL), ar1_info)
 
 ```
 
-Using a hilariously basic model where the optimal range parameters [amount1, tick_lower] for 1 break is simply passed forward to the new [current_price, trades] of the next break to identify forecastable profitability.
+Using this simple, augmented if required, model to identify forecastable profitability.
 
 ```{r}
 
@@ -191,11 +224,54 @@ perfect_netprofit_eth <- unlist(lapply(range_info, FUN = function(x){
 
 summary(perfect_netprofit_eth)
 
-ar1_netprofit_eth <- unlist(lapply(ar1_info, FUN = function(x){
-  x$strategy_details$value - 100
-}))
+ar1_netprofit_eth <-c(0, unlist(lapply(ar1_info, FUN = function(x){
+    x$strategy_details$value - 100
+})))
 
 summary(ar1_netprofit_eth)
+
+plotly::plot_ly(x = ar1_netprofit_eth, type = "histogram", nbinsx = 1000, color = 'AR1') %>% 
+  layout(title = list(text = "Distribution of ETH Profit using AR(1) Parameters",
+                      y = 0.95),
+         xaxis = list(title = "ETH Profit above Budget"),
+         yaxis = list(title = "#")) %>% 
+  add_trace(
+    x = perfect_netprofit_eth, type = "histogram", nbinsx = 1000, color = 'Perfect'
+  )
+  
+
+plotly::plot_ly(x = perfect_netprofit_eth, type = "histogram", nbinsx = 1000) %>% 
+  layout(title = list(text = "Distribution of ETH Profit using Perfect Parameters",
+                      y = 0.95),
+         xaxis = list(title = "ETH Profit above Budget"),
+         yaxis = list(title = "#"))
+
+plotly::plot_ly(x = perfect_netprofit_eth, 
+                y = ar1_netprofit_eth, color = 1:460,
+                type = "scatter") %>%
+  layout(title = list(text = "Distribution of ETH Profit Perfect vs AR(1)",
+                      y = 0.95),
+         xaxis = list(title = "Perfect Profit"),
+         yaxis = list(title = "AR(1) Profit")) 
+
+open_close <- do.call(what = rbind, args = lapply(range_info, FUN = function(x){
+   data.frame(open = x$p1,
+              close = x$p2
+   )
+}))
+
+plot_ly(data = open_close, x = 1:460, y = ~(close - open), type = "scatter", name = "Close-Open") 
+
+plot_ly(data = open_close[300:460, ], 
+        x = ~(close-open),
+        y = ar1_netprofit_eth[300:460],
+        color = 300:460, 
+        hovertext = 300:460) %>%
+  layout(title = list(text = "AR(1) Profit over 10K Block Period",
+                      y = 0.95),
+         xaxis = list(title = "Price Deviation (Close ETH/BTC - Open ETH/WBTC)"),
+         yaxis = list(title = "AR(1) Profit in ETH")) 
+
 ```
 
 
