@@ -65,7 +65,10 @@ calculate_profit <- function(params, budget = 100, p1, p2, trades,
                                 tick_lower = tick_lower,
                                 tick_upper = NULL)$tick_upper
 
-  if(tick_upper < tick_lower){
+  if(tick_upper < tick_lower & in_optim){
+    # large positive number to be ignored in optim
+    return(1e6)
+  } else if (tick_upper < tick_lower & !in_optim){
     warning("tick_upper < tick_lower, switching ticks.")
     temp <- tick_lower
     tick_lower <- tick_upper
@@ -88,6 +91,26 @@ calculate_profit <- function(params, budget = 100, p1, p2, trades,
                             trades = trades,
                             fee = fee,
                             denominate = denominate)
+
+  # calc_strategy_value uses get_position_balance which comes from liquidity
+  # if liquidity is from a single token (i.e., position starts out of range and never enters)
+  # then a value of 0 is assigned for one of the tokens
+  # because calculate_profit has both a0 and a1
+  # this can be fixed by replacing the 0 with the position details
+
+  # only do this out of optimization
+  # and even then this should be double checked
+  if(denominate == 1 &
+     sv$balances$token0 == 0 &
+     sv$value == sv$balances$token1){
+    sv$balances$token0 <- a0
+    sv$value <- sv$value + (a0*p2)
+  } else if(denominate == 0 &
+            sv$balances$token1 == 0 &
+     sv$value == sv$balances$token1){
+    sv$balances$token1 <- a1
+    sv$value <- sv$value + (a1/p2)
+  }
 
   if(in_optim){
     # * -1 because optim default is mininimization
