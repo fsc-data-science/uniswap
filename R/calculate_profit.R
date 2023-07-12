@@ -65,20 +65,39 @@ calculate_profit <- function(params, budget = 100, p1, p2, trades,
                                 tick_lower = tick_lower,
                                 tick_upper = NULL)$tick_upper
 
+  # Error Handling
   if(tick_upper < tick_lower & in_optim){
     # large positive number to be ignored in optim
     return(1e6)
   } else if (tick_upper < tick_lower & !in_optim){
-    warning("Parameters caused a tick_upper > tick_lower error.")
-    return(
-      list(
-      position = list(x = a0, y = a1,
+
+    warning("Parameters caused a tick_upper > tick_lower error. See return.")
+
+    r_ <- list(position = list(x = a0, y = a1,
                       tick_lower = tick_lower, tick_upper = tick_upper,
-                      liquidity = 0),
-      strategy_value = 100
-      )
+                      liquidity = 0))
+
+    # no fees, balances left as is
+    sv <- list(
+      value = NULL,
+      fees = list(amount0_fees = 0, amount1_fees = 0),
+      balances = list(token0 = a0, token1 = a1),
+      price = p2
     )
-  }
+
+    # still provide strategy value for sitting out of the round using p2
+    if(denominate == 1){
+    sv$value <- sv$balances$token1 + (a0*p2)
+    } else if (denominate == 0){
+    sv$value <- sv$balances$token0 + (a1/p2)
+    }
+
+    # align structure of invalid runs to match valid runs
+    r_$strategy_value = sv
+
+      return(r_)
+  } # END error handling
+
 
   L = get_liquidity(x = a0, y = a1,
                     sqrtpx96 = sqrtpx96_1,
@@ -121,7 +140,7 @@ calculate_profit <- function(params, budget = 100, p1, p2, trades,
     # * -1 because optim default is mininimization
     return(-sv$value)
   } else {
-    # out of optimization, return position details
+    # out of optimization, return position & strategy details
     return(
       list(
         position = list(x = a0, y = a1, tick_lower = tick_lower, tick_upper = tick_upper, liquidity = L),
