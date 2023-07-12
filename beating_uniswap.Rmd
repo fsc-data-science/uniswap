@@ -6,12 +6,19 @@ output:
   html_document:
     css: "styles.css"
     includes:
+      in_header: header.html
     code_folding: hide
     toc: true
     toc_float: true
 editor_options: 
   chunk_output_type: console
 ---
+
+```{r}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+# set TRUE to run calculate_profits, otherwise just read from saved runs in repo
+run = FALSE
+```
 
 # Abstract
 
@@ -65,6 +72,10 @@ range for each chunk given a 100 ETH starting value and taking the initial tick
 of the trade as the current price and tick of the last trade as the final price.
 
 ```{r}
+library(dplyr)
+library(plotly)
+library(uniswap)
+
 data("ethwbtc_trade_history")
 trades_124_170 <- ethwbtc_trade_history[ethwbtc_trade_history$block_number >= 12400000, ]
 
@@ -85,17 +96,19 @@ using an expanded grid of (0.1 - 0.9) * budget as the initial amount1 and
 values to identify an initial parameter to then apply optimization.
 
 ```{r}
-range_info <- list()
 budget = 100 # 100 ETH
 
+if(run == FALSE){
+  range_info <- readRDS("optimal_ranges_info_12M400K_17M.rds")
+} else {
 range_info <- lapply(X = 1:460, FUN = function(i){
-
+print(i)
   # 1e10 decimal is b/c WBTC is 8 decimals and WETH is 18
   p1 <- tick_to_price(trade_breaks[[i]]$tick[1],decimal_adjustment =  1e10)
   p2 <- tick_to_price(tail(trade_breaks[[i]]$tick, 1),decimal_adjustment =  1e10)
   
  low_price <- ((1:9)/10)*p1
- amount_1 <- budget*(1:9)/10
+ amount_1 <- c(1, budget*(1:9)/10)
 
 grid <- expand.grid(x = amount_1, y = low_price)
 
@@ -103,7 +116,7 @@ sv <- lapply(1:nrow(grid), function(j){
 tryCatch({
     calculate_profit(
       params = c(grid[j,1], grid[j,2]),
-      budget = 100, p1 = p1, p2 = p2, trades = trade_breaks[[i]],
+      budget = budget, p1 = p1, p2 = p2, trades = trade_breaks[[i]],
       decimal_x = 1e8, decimal_y = 1e18, fee = 0.003,
       denominate = 1,
       in_optim = TRUE)
@@ -153,6 +166,7 @@ result <- optim(init_params,
   )
   
 })
+}
 
 ```
 
@@ -175,13 +189,19 @@ So an augmentation is applied to the AR(1) model where the `tick_lower` goes thr
 In the example case, the range was 12.5 - 13.5 ETH/BTC. We cannot use 12.5 because the 
 current price is 12. So instead we use the fraction 12.5/ 13 (tick_lower / yesterday's initial price) which is 0.961, and set our tick_lower to that ratio of th current price, 0.961 * 12 = 11.538
 
-If 
+In some instances, even this adjustment results in unusable parameters. For example, the budget in one period may be 80% BTC and 20% ETH for a given tick_lower. Attempting to keep this ratio for a given tick_lower at a new price may result in the math returning a tick_upper that is below the tick_lower. 
+
+In the smart contracts of Uniswap v3, e.g., when calculating liquidity, anytime the math would result in tick_lower > tick_upper they simply switch the ticks. tick_lower becomes tick_upper and vice versa to ensure tick_lower < tick_upper.
+
+But this can't work in the AR(1) case as it results in entirely different position structure that doesn't align to how anyone would think of AR(1). In these cases, the budget ratio (80% BTC and 20% ETH) is preserved and the tokens are simply kept out of range entirely earning 0 fees but still be assessed a strategy value.
 
 
 ```{r}
 
-ar1_info <- list()
-
+if(run == FALSE){
+  ar1_info <- readRDS("ar1_range_info_12M410K_17M.rds")
+} else {
+  
 ar1_info <- lapply(2:460, function(i){
   
   params <- range_info[[(i-1)]]$result_par
@@ -211,10 +231,14 @@ ar1_info <- lapply(2:460, function(i){
 
 # shift breaks forward
 ar1_info <- c(list(NULL), ar1_info)
+}
 
 ```
 
-Using this simple, augmented if required, model to identify forecastable profitability.
+Using this simple, augmented if required, model to identify if profitability can be forecasted.
+
+Generally, AR(1) is not a profitable strategy. With a median loss of -0.2852 ETH and 
+average loss of -0.536 ETH, and an interquartile range of -0.97 to +0.449.
 
 ```{r}
 
@@ -222,13 +246,9 @@ perfect_netprofit_eth <- unlist(lapply(range_info, FUN = function(x){
     x$strategy_details$value - 100
 }))
 
-summary(perfect_netprofit_eth)
-
 ar1_netprofit_eth <-c(0, unlist(lapply(ar1_info, FUN = function(x){
     x$strategy_details$value - 100
 })))
-
-summary(ar1_netprofit_eth)
 
 plotly::plot_ly(x = ar1_netprofit_eth, type = "histogram", nbinsx = 1000, color = 'AR1') %>% 
   layout(title = list(text = "Distribution of ETH Profit using AR(1) Parameters",
@@ -239,21 +259,53 @@ plotly::plot_ly(x = ar1_netprofit_eth, type = "histogram", nbinsx = 1000, color 
     x = perfect_netprofit_eth, type = "histogram", nbinsx = 1000, color = 'Perfect'
   )
   
+```
 
+# Visualizations 
+
+```{r}
+plot_ly(x = 1:460, y = perfect_netprofit_eth, type = 'scatter',
+        name = 'Perfect',
+        mode = 'lines') %>% 
+  add_trace(x = 1:460, y = ar1_netprofit_eth, name = 'AR(1)') %>%
+  layout(title = list(text = "Profits for Perfect and AR(1) over Time",
+                      y = 0.95),
+         xaxis = list(title = "1 Break = 10,000 Blocks"),
+         yaxis = list(title = "# ETH Profit above Budget"))
+
+```
+
+The distribution of perfect parameters is expectedly positive given we are denominating 
+in a single asset within the pool (ETH) with a few negatives due to how parameter boundaries may 
+require participation in breaks where it would have been best to not participate. 
+
+```{r}
 plotly::plot_ly(x = perfect_netprofit_eth, type = "histogram", nbinsx = 1000) %>% 
   layout(title = list(text = "Distribution of ETH Profit using Perfect Parameters",
                       y = 0.95),
          xaxis = list(title = "ETH Profit above Budget"),
          yaxis = list(title = "#"))
 
+```
+
+Overall AR(1) is a pretty weak model structure for this. But post-merge the variance 
+has fallen.
+
+```{r}
 plotly::plot_ly(x = perfect_netprofit_eth, 
-                y = ar1_netprofit_eth, color = 1:460,
+                y = ar1_netprofit_eth, color = c(rep("Pre-Merge",314), rep("Post-Merge",146)),
                 type = "scatter") %>%
   layout(title = list(text = "Distribution of ETH Profit Perfect vs AR(1)",
                       y = 0.95),
          xaxis = list(title = "Perfect Profit"),
-         yaxis = list(title = "AR(1) Profit")) 
+         yaxis = list(title = "AR(1) Profit"),
+         legend = list(title = list(text = "10K Block Era"))) 
+```
 
+Price divergence in ETH/BTC terms has fallen since the merge which likely explains why AR(1) is slightly 
+better post merge as volume stays within a smaller price range.
+
+```{r}
 open_close <- do.call(what = rbind, args = lapply(range_info, FUN = function(x){
    data.frame(open = x$p1,
               close = x$p2
@@ -262,16 +314,30 @@ open_close <- do.call(what = rbind, args = lapply(range_info, FUN = function(x){
 
 plot_ly(data = open_close, x = 1:460, y = ~(close - open), type = "scatter", name = "Close-Open") 
 
-plot_ly(data = open_close[300:460, ], 
+```
+
+Because Profit is denominated in ETH, price divergence would make some profits trivial. 
+If BTC becomes more valuable against ETH (ETH/BTC rises) then earning ETH is simple jsut 
+sell the BTC for rising ETH.
+
+It is more interesting to see where price divergence against ETH can still have positive 
+profit, but in general, if ETH becomes more valuable you're losing in ETH terms as you sell 
+it for WBTC.
+
+The rough linearity visible aligns to this expected relationships. Deviations from the 
+best fit line are a mix of (1) significant volume causing high trade fees when profit is positive and (2) the AR(1) parameters being especially far from the actual perfect range parameters (e.g., if AR(1) has a low ETH allocation but price divergence is highly positive causing high loss in ETH terms and low trading fees as the position falls out range).
+
+```{r}
+plot_ly() %>%
+  add_trace(data = open_close, 
         x = ~(close-open),
-        y = ar1_netprofit_eth[300:460],
-        color = 300:460, 
-        hovertext = 300:460) %>%
+        y = ar1_netprofit_eth,
+        color = c(rep("Pre-Merge",314), rep("Post-Merge",146)), 
+        hovertext = breaks[1:460]) %>%
+  add_trace(x = c(-2,-1,0,1,2), y = c(-10, -5, 0, 5, 10), mode = "lines", name = "y=5x") %>% 
   layout(title = list(text = "AR(1) Profit over 10K Block Period",
                       y = 0.95),
          xaxis = list(title = "Price Deviation (Close ETH/BTC - Open ETH/WBTC)"),
          yaxis = list(title = "AR(1) Profit in ETH")) 
 
 ```
-
-
