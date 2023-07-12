@@ -33,8 +33,13 @@ get_liquidity <- function(x, y, sqrtpx96, decimal_x = 1e18, decimal_y = 1e18, ti
 
   mintickx96 <- price_to_sqrtpx96(P = tick_to_price(tick = tick_lower, decimal_adjustment),
                                   decimal_adjustment = decimal_adjustment)
+
   maxtickx96 <- price_to_sqrtpx96(P = tick_to_price(tick = tick_upper, decimal_adjustment),
                                   decimal_adjustment = decimal_adjustment)
+
+  if(mintickx96 == maxtickx96){
+    return(0)
+  }
 
   # include minimum of Lx and Ly as done in contract
   # formal math in Uni v3 implemented w/ sqrt px96 price formats

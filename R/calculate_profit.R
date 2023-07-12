@@ -68,13 +68,15 @@ calculate_profit <- function(params, budget = 100, p1, p2, trades,
   if(tick_upper < tick_lower & in_optim){
     # large positive number to be ignored in optim
     return(1e6)
-  } } else if (tick_upper < tick_lower & !in_optim){
+  } else if (tick_upper < tick_lower & !in_optim){
     warning("Parameters caused a tick_upper > tick_lower error.")
-    list(
+    return(
+      list(
       position = list(x = a0, y = a1,
                       tick_lower = tick_lower, tick_upper = tick_upper,
                       liquidity = 0),
       strategy_value = 100
+      )
     )
   }
 
