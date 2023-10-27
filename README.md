@@ -5,8 +5,7 @@ output:
 ---
 # Beating Uniswap
 
-This R Package calculates the retroactive "perfect" liquidity position given a
-budget (e.g. 100 ETH) and a set of trades in a liquidity pool (e.g., all ETH-WBTC trades between Blocks 16,000,000 and 16,010,000 in the 0.3% fee tier). These trades 
+This R Package calculates the retroactive "perfect" liquidity position given a budget (e.g. 100 ETH) and a set of trades in a liquidity pool (e.g., all ETH-WBTC trades between Blocks 16,000,000 and 16,010,000 in the 0.3% fee tier). These trades 
 implicitly include starting and ending price details but can be overriden if desired.
 
 # Data  
